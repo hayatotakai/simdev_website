@@ -166,11 +166,11 @@ import Layout from '../../layouts/readmeViewer.astro';
 </script>
 <script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" ></script>
 
-<script is:inline>
+<script>
   // Get the readme path from URL query parameter
   const urlParams = new URLSearchParams(window.location.search);
   const readmeParam = urlParams.get('readme') || urlParams.get('file');
-  const defaultReadme = '/scripts/oil_properties/README.md';
+  const defaultReadme = import.meta.env.BASE_URL.replace(/\/$/, '') + '/scripts/oil_properties/README.md';
 
   function normalizeReadmePath(input) {
     if (!input) return defaultReadme;
@@ -367,8 +367,7 @@ import Layout from '../../layouts/readmeViewer.astro';
         window.history.back();
       } else {
         // If no history, go to home or tools page
-        const basePath = document.baseURI.replace(/\/$/, '');
-        window.location.href = basePath + '/tools/oil_properties';
+        window.location.href = import.meta.env.BASE_URL.replace(/\/$/, '') + '/tools/oil_properties';
       }
     });
   }
