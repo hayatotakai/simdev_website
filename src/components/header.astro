@@ -10,8 +10,6 @@ function cleanName(filename) {
     .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-import { getRelativeLocaleUrl } from 'astro:i18n';
-
 // Load top-level pages from /pages/*.astro
 const sitePages = import.meta.glob('../pages/*.astro');
 const topLevelLinks = Object.keys(sitePages)
@@ -20,7 +18,7 @@ const topLevelLinks = Object.keys(sitePages)
   .map((path) => {
     const filename = path.split('/').pop().replace('.astro', '');
     return {
-      url: getRelativeLocaleUrl('en', filename),
+      url: `/${filename}`,
       title: cleanName(filename)
     };
   });
@@ -31,7 +29,7 @@ const toolLinks = Object.keys(toolPages)
   .map((path) => {
     const filename = path.split('/').pop().replace('.astro', '');
     return {
-      url: getRelativeLocaleUrl('en', `tools/${filename}`),
+      url: `/tools/${filename}`,
       title: cleanName(filename)
     };
   });
