@@ -1,0 +1,392 @@
+---
+import Layout from '../../layouts/BaseLayout.astro';
+---
+
+<Layout>
+<style>
+  /* ============================================
+     TYPOGRAPHY
+     ============================================ */
+  body {
+    font-family: Arial, sans-serif;
+  }
+
+  h1 {
+    text-align: center;
+    margin: 0;
+    flex: 0 0 auto;
+  }
+
+  h2 {
+    margin-top: 40px;
+    border-bottom: 2px solid var(--border-color);
+    padding-bottom: 5px;
+  }
+
+  h3 {
+    margin-top: 20px;
+    font-size: 1.1rem;
+  }
+
+  /* ============================================
+     LAYOUT
+     ============================================ */
+  .header-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    margin-bottom: 24px;
+    gap: 20px;
+  }
+
+  .header-container > a {
+    position: absolute;
+    right: 0;
+  }
+
+  main {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+
+  .section {
+    margin-bottom: 50px;
+  }
+
+  /* ============================================
+     FORM ELEMENTS
+     ============================================ */
+  label {
+    font-weight: 600;
+    display: block;
+    margin-top: 12px;
+    margin-bottom: 6px;
+    font-size: 0.95rem;
+  }
+
+  input[type="number"],
+  select {
+    padding: 8px 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    font-size: 0.95rem;
+    background: var(--input-bg);
+    color: var(--text-primary);
+    transition: border-color 0.2s ease;
+  }
+
+  input[type="number"]:focus,
+  select:focus {
+    outline: none;
+    border-color: var(--primary-color, #0066cc);
+  }
+
+  input[type="number"] {
+    width: 100px;
+  }
+
+  select {
+    min-width: 80px;
+  }
+
+  /* ============================================
+     BUTTONS
+     ============================================ */
+  button {
+    padding: 8px 16px;
+    margin-top: 12px;
+    margin-right: 8px;
+    background-color: #0066cc;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: background-color 0.2s ease;
+  }
+
+  button:hover {
+    background-color: #0052a3;
+  }
+
+  .btn-docs {
+    padding: 8px 16px;
+    background-color: #0066cc;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: background-color 0.2s ease;
+    margin-top: 0;
+  }
+
+  .btn-docs:hover {
+    background-color: #0052a3;
+  }
+
+  /* ============================================
+     TABLES
+     ============================================ */
+  table {
+    border-collapse: collapse;
+    margin-top: 10px;
+    width: 100%;
+    max-width: 600px;
+  }
+
+  th {
+    background: var(--table-header);
+    font-weight: 600;
+    color: var(--text-primary);
+    text-align: left;
+  }
+
+  th,
+  td {
+    border: 1px solid var(--border-color);
+    padding: 8px 12px;
+  }
+
+  tbody tr:nth-child(even) {
+    background: var(--table-even);
+  }
+
+  tbody tr:hover {
+    background: var(--bg-third);
+  }
+
+  /* ============================================
+     RESULTS & VISUALIZATION
+     ============================================ */
+  .results-container {
+    margin-top: 20px;
+    padding: 16px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background: var(--bg-second);
+  }
+
+  .plot-container {
+    margin-top: 24px;
+    padding: 16px;
+    background: var(--bg-second);
+    border-radius: 4px;
+    display: flex;
+    justify-content: center;
+  }
+
+  canvas {
+    max-width: 100%;
+    height: auto;
+  }
+
+  /* ============================================
+     DOCUMENTATION SOURCE
+     ============================================ */
+  .source {
+    background-color: rgba(208, 227, 252, 0.5);
+    width: 30%;
+    margin: 0 auto !important;
+    padding: 12px;
+    border-radius: 4px;
+    text-align: center;
+    font-size: 0.9rem;
+  }
+
+  .MathJax {
+    margin: 0 !important;
+  }
+
+  /* ============================================
+     INPUT GROUP
+     ============================================ */
+  .input-group {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .button-group {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+  }
+
+  /* ============================================
+     RESPONSIVE
+     ============================================ */
+  @media (max-width: 768px) {
+    main {
+      padding: 12px;
+    }
+
+    table {
+      max-width: 100%;
+      font-size: 0.9rem;
+    }
+
+    th,
+    td {
+      padding: 6px 8px;
+    }
+
+    input[type="number"],
+    select {
+      max-width: 100%;
+    }
+
+    .header-container {
+      flex-direction: column;
+    }
+
+    .header-container > a {
+      position: static;
+    }
+
+    .source {
+      width: 90%;
+    }
+  }
+</style>
+
+<main>
+<section>
+  <div class="header-container">
+    <h1>Porous Media Property Calculator</h1>
+    <a href="/helpers/documentation?readme=/scripts/porous_media/README.md" target="_blank" rel="noopener noreferrer">
+      <button class="btn-docs">📖 See Documentation</button>
+    </a>
+  </div>
+
+  <!-- Oil and Temperature Inputs -->
+  <div class="section">
+    <h2>Oil Properties</h2>
+    <label for="oilTypeSelect">Oil Type:</label>
+    <select id="oilTypeSelect"></select>
+
+    <label for="operatingTempInput">Temperature:</label>
+    <div class="input-group">
+      <input type="number" id="operatingTempInput" placeholder="Enter value" style="width: 120px;">
+      <select id="operatingTempUnitSelect" style="width: 80px;">
+        <option value="C">°C</option>
+        <option value="F">°F</option>
+        <option value="K">K</option>
+      </select>
+    </div>
+
+    <label for="lengthInput">Length (L) [m]:</label>
+    <input type="number" id="lengthInput" placeholder="Enter length" style="width: 120px;">
+
+    <h3>Fluid Properties</h3>
+    <label for="densityInput">Density (ρ) [kg/m³]:</label>
+    <input type="number" id="densityInput" step="any" placeholder="Auto" style="width: 120px;">
+
+    <label for="viscosityInput">Dynamic Viscosity (μ) [Pa·s]:</label>
+    <input type="number" id="viscosityInput" step="any" placeholder="Auto" style="width: 120px;">
+  </div>
+
+  <!-- Darcy-Forchheimer Method -->
+  <div class="section">
+    <h2>Darcy–Forchheimer Medium (Velocity Method)</h2>
+    <p>Enter velocity and pressure loss data to calculate Darcy and Forchheimer coefficients.</p>
+
+    <h3>Velocity vs Pressure Loss Data</h3>
+    <table id="dataTable">
+      <thead>
+        <tr>
+          <th>Velocity (u) [m/s]</th>
+          <th>Pressure Loss (ΔP) [Pa]</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><input type="number" step="any"></td>
+          <td><input type="number" step="any"></td>
+        </tr>
+        <tr>
+          <td><input type="number" step="any"></td>
+          <td><input type="number" step="any"></td>
+        </tr>
+        <tr>
+          <td><input type="number" step="any"></td>
+          <td><input type="number" step="any"></td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="button-group">
+      <button onclick="addRow()">+ Add Row</button>
+      <button onclick="calculateAll()">Calculate</button>
+    </div>
+
+    <div id="results" class="results-container" style="display: none;"></div>
+    <div class="plot-container" id="plotContainer" style="display: none;">
+      <canvas id="dataPlot" width="600" height="400"></canvas>
+    </div>
+  </div>
+
+  <!-- Flow Rate Method -->
+  <div class="section">
+    <h2>Flow Rate–Based Porous Media Calculation</h2>
+    <p>Enter flow rate and pressure loss data. Velocity is auto-calculated from cross-sectional area.</p>
+
+    <label for="areaInput">Cross-Sectional Area (A<sub>c</sub>) [m²]:</label>
+    <input type="number" id="areaInput" step="any" placeholder="Enter area" oninput="updateVelocities()" style="width: 120px;">
+
+    <h3>Flow Rate vs Pressure Loss Data</h3>
+    <table id="flowDataTable">
+      <thead>
+        <tr>
+          <th>Flow Rate (Q) [m³/s]</th>
+          <th>Velocity (u) [m/s]</th>
+          <th>Pressure Loss (ΔP) [Pa]</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><input type="number" step="any" oninput="updateVelocities()"></td>
+          <td><input type="number" step="any" readonly></td>
+          <td><input type="number" step="any"></td>
+        </tr>
+        <tr>
+          <td><input type="number" step="any" oninput="updateVelocities()"></td>
+          <td><input type="number" step="any" readonly></td>
+          <td><input type="number" step="any"></td>
+        </tr>
+        <tr>
+          <td><input type="number" step="any" oninput="updateVelocities()"></td>
+          <td><input type="number" step="any" readonly></td>
+          <td><input type="number" step="any"></td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="button-group">
+      <button onclick="addFlowRow()">+ Add Row</button>
+      <button onclick="calculateFromFlow()">Calculate</button>
+    </div>
+
+    <div id="flowResults" class="results-container" style="display: none;"></div>
+    <div class="plot-container" id="flowPlotContainer" style="display: none;">
+      <canvas id="flowPlot" width="600" height="400"></canvas>
+    </div>
+  </div>
+
+  <!-- Curve Fitting Visualization -->
+  <div class="section">
+    <h2>Curve Fitting Analysis</h2>
+    <p>Advanced least-squares curve fitting for Darcy-Forchheimer equation: ΔP = A·u + B·u²</p>
+  </div>
+</section>
+</main>
+</Layout>
+<script src="https://cdn.jsdelivr.net/npm/chart.js" is:client></script>
+<script src="/scripts/oil_properties/getOilProperties.js" is:client></script>
+<script src="/scripts/unit_converter.js" is:client></script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" is:client></script>
+<script src="/scripts/porous_media/porous_media.js" is:client></script>
+<script src="/scripts/curve_fitting/curve_fitting.js" is:client></script>
+

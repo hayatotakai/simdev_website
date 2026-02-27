@@ -1,0 +1,301 @@
+---
+import Layout from '../../layouts/BaseLayout.astro';
+---
+
+<Layout>
+<style>
+  .ml-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+
+  .form-group {
+    margin-bottom: 20px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  label {
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: #1f2328;
+    font-size: 14px;
+  }
+
+  select,
+  input {
+    padding: 8px 12px;
+    border: 1px solid #d0d7de;
+    border-radius: 6px;
+    font-size: 14px;
+    font-family: inherit;
+    transition: border-color 0.2s;
+  }
+
+  select:focus,
+  input:focus {
+    outline: none;
+    border-color: #0969da;
+    box-shadow: 0 0 0 3px rgba(9, 105, 218, 0.1);
+  }
+
+  .input-hint {
+    font-size: 12px;
+    color: #656d76;
+    margin-top: 4px;
+  }
+
+  .form-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 24px;
+  }
+
+  button {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    transition: background-color 0.2s;
+  }
+
+  .btn-primary {
+    background-color: #0969da;
+    color: white;
+  }
+
+  .btn-primary:hover {
+    background-color: #0860ca;
+  }
+
+  .btn-secondary {
+    background-color: #6e7681;
+    color: white;
+  }
+
+  .btn-secondary:hover {
+    background-color: #57606a;
+  }
+
+  .results {
+    margin-top: 30px;
+    padding: 16px;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    background-color: #f9fafb;
+    display: none;
+  }
+
+  .results.active {
+    display: block;
+  }
+
+  .result-item {
+    margin-bottom: 12px;
+    padding: 8px 0;
+    border-bottom: 1px solid #e5e7eb;
+  }
+
+  .result-item:last-child {
+    border-bottom: none;
+  }
+
+  .result-label {
+    font-weight: 600;
+    color: #1f2328;
+    font-size: 13px;
+  }
+
+  .result-value {
+    color: #656d76;
+    font-size: 13px;
+    margin-top: 2px;
+  }
+
+  .error-message {
+    padding: 12px;
+    background-color: #ffebe6;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    color: #d1242f;
+    font-size: 14px;
+    display: none;
+    margin-bottom: 20px;
+  }
+
+  .error-message.active {
+    display: block;
+  }
+
+</style>
+
+<main class="ml-container">
+  <h1>Machine Learning Configuration</h1>
+  <p style="color: #656d76; margin-bottom: 24px;">Enter oil properties to configure your machine learning model.</p>
+
+  <div id="errorMessage" class="error-message"></div>
+
+  <form id="mlForm">
+    <div class="form-group">
+      <label for="oilType">Oil Type</label>
+      <select id="oilType" required>
+        <option value="">-- Select an oil --</option>
+      </select>
+      <small class="input-hint">Select from available fluid types in the database</small>
+    </div>
+
+    <div class="form-group">
+      <label for="nominalTemp">Nominal Temperature (°C)</label>
+      <input 
+        type="number" 
+        id="nominalTemp" 
+        placeholder="e.g., 40" 
+        step="0.1"
+        min="-40"
+        max="100"
+        required
+      />
+      <small class="input-hint">Temperature range: -40°C to 100°C</small>
+    </div>
+
+    <div class="form-group">
+      <label for="maxFlowRate">Maximum Flow Rate (m³/s)</label>
+      <input 
+        type="number" 
+        id="maxFlowRate" 
+        placeholder="e.g., 0.05" 
+        step="0.001"
+        min="0"
+        required
+      />
+      <small class="input-hint">Enter maximum expected flow rate in cubic meters per second</small>
+    </div>
+
+    <div class="form-actions">
+      <button type="submit" class="btn-primary">Get Oil Properties</button>
+      <button type="reset" class="btn-secondary">Clear</button>
+    </div>
+  </form>
+
+  <div id="results" class="results">
+    <h2 style="margin-top: 0; margin-bottom: 16px;">Oil Properties Result</h2>
+    <div id="resultsContent"></div>
+  </div>
+</main>
+
+</Layout>
+
+<script is:inline>
+  async function initializeOilForm() {
+    const oilTypeSelect = document.getElementById('oilType');
+    const form = document.getElementById('mlForm');
+    const resultsDiv = document.getElementById('results');
+    const resultsContent = document.getElementById('resultsContent');
+    const errorMessage = document.getElementById('errorMessage');
+
+    // Load fluid data and populate dropdown
+    try {
+      await OilProps.loadFluidData();
+      const fluids = OilProps.getFluidNames();
+      
+      fluids.forEach(fluidName => {
+        const option = document.createElement('option');
+        option.value = fluidName;
+        option.textContent = fluidName;
+        oilTypeSelect.appendChild(option);
+      });
+    } catch (error) {
+      showError('Failed to load oil types. Please refresh the page.');
+      console.error(error);
+    }
+
+    // Handle form submission
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      errorMessage.classList.remove('active');
+      resultsDiv.classList.remove('active');
+
+      const oilType = document.getElementById('oilType').value;
+      const nominalTemp = parseFloat(document.getElementById('nominalTemp').value);
+      const maxFlowRate = parseFloat(document.getElementById('maxFlowRate').value);
+
+      if (!oilType) {
+        showError('Please select an oil type');
+        return;
+      }
+
+      if (!Number.isFinite(nominalTemp)) {
+        showError('Please enter a valid nominal temperature');
+        return;
+      }
+
+      if (!Number.isFinite(maxFlowRate) || maxFlowRate <= 0) {
+        showError('Please enter a valid maximum flow rate greater than 0');
+        return;
+      }
+
+      try {
+        // Get oil properties at nominal temperature
+        const nominalTempK = nominalTemp + 273.15;
+        const kinViscosity = OilProps.getKinViscAtTemp(oilType, nominalTempK);
+        const density = OilProps.getDensityAtTemp(oilType, nominalTempK);
+        const dynViscosity = OilProps.getDynViscAtTemp(oilType, nominalTempK);
+
+        if (!Number.isFinite(kinViscosity) || !Number.isFinite(density)) {
+          showError(`Could not find properties for ${oilType} at ${nominalTemp}°C`);
+          return;
+        }
+
+        // Display results
+        resultsContent.innerHTML = `
+          <div class="result-item">
+            <div class="result-label">Oil Type</div>
+            <div class="result-value">${oilType}</div>
+          </div>
+          <div class="result-item">
+            <div class="result-label">Nominal Temperature</div>
+            <div class="result-value">${nominalTemp}°C (${nominalTempK.toFixed(2)} K)</div>
+          </div>
+          <div class="result-item">
+            <div class="result-label">Kinematic Viscosity</div>
+            <div class="result-value">${kinViscosity.toFixed(4)} mm²/s</div>
+          </div>
+          <div class="result-item">
+            <div class="result-label">Density</div>
+            <div class="result-value">${density.toFixed(2)} kg/m³</div>
+          </div>
+          <div class="result-item">
+            <div class="result-label">Dynamic Viscosity</div>
+            <div class="result-value">${dynViscosity.toFixed(6)} Pa·s</div>
+          </div>
+          <div class="result-item">
+            <div class="result-label">Maximum Flow Rate</div>
+            <div class="result-value">${maxFlowRate.toFixed(4)} m³/s</div>
+          </div>
+        `;
+
+        resultsDiv.classList.add('active');
+      } catch (error) {
+        showError(`Error calculating properties: ${error.message}`);
+        console.error(error);
+      }
+    });
+
+    function showError(message) {
+      errorMessage.textContent = message;
+      errorMessage.classList.add('active');
+    }
+  }
+
+  // Initialize when DOM is ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeOilForm);
+  } else {
+    initializeOilForm();
+  }
+</script>
+
+<script src="../../scripts/oil_properties/getOilProperties.js" is:client></script>

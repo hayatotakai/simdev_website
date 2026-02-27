@@ -1,0 +1,340 @@
+/* ============================================
+   CSS VARIABLES
+   ============================================ */
+:root {
+  /* Layout */
+  --header-height: 40px;
+  --max-width: 1600px;
+  --gap: 8px;
+
+  /* Typography Scale */
+  --font-scale-1: clamp(1.25rem, 4vw, 4rem);
+  --font-scale-2: clamp(2rem, 0.9375rem + 2.84375vw, 2.75rem);
+  --font-scale-3: clamp(0.75rem, 2vw, 1.5rem);
+  --font-scale-4: clamp(1.05rem, 1.4vw, 1.125rem);
+  --font-scale-5: clamp(0.95rem, 1.1vw, 1rem);
+  --font-scale-6: clamp(0.85rem, 1vw, 0.875rem);
+  --font-body: clamp(1rem, 0.8125rem + 0.46875vw, 1.125rem);
+  --line-height-heading: 1.2;
+  --line-height-body: 1.6;
+  --spacing-heading: 1rem;
+  --spacing-body: 1rem;
+
+  /* Colors - Gray Scale (shared) */
+  --gray-50: #fafafa;
+  --gray-100: #f4f4f5;
+  --gray-200: #e5e7eb;
+  --gray-300: #d1d5db;
+  --gray-400: #9ca3af;
+  --gray-500: #6b7280;
+  --gray-600: #4b5563;
+  --gray-700: #374151;
+  --gray-800: #1f2937;
+  --gray-900: #111827;
+
+  /* Colors - Named (shared) */
+  --white: #ffffff;
+  --black: #000000;
+  --red: #d20004;
+  --red-dark: #911215;
+
+  /* Colors - RGB (for alpha usage) */
+  --red-rgb: 255, 0, 0;
+  --blue-rgb: 0, 0, 200;
+  --black-rgb: 0, 0, 0;
+  --oil-rgb: 255, 159, 64;
+  --material-rgb: 125, 125, 125;
+  --air-rgb: 0, 62, 204;
+
+  /* Colors - 3D Visualizer */
+  --tank-main-color: #a6a6a6;
+  --tank-half-color: #ff8c00;
+  --tank-cylinder-color: #808080;
+}
+
+/* ============================================
+   LIGHT MODE (DEFAULT)
+   ============================================ */
+:root {
+  color-scheme: light;
+
+  /* Backgrounds */
+  --bg-main: #f5f5f5;
+  --bg-second: #ffffff;
+  --bg-third: #fafafa;
+  --panel-left-bg: #f9f9f9;
+  --panel-right-bg: #ffffff;
+  --box-bg: #ffffff;
+  --header-bg: #ffffff;
+  --input-bg: #ffffff;
+  --preview-bg: #f9f9f9;
+
+  /* Text */
+  --text-primary: #1f2937;
+  --text-secondary: #4b5563;
+  --text-tertiary: #6b7280;
+  --text-inverse: #ffffff;
+  --chart-text: #1f2937;
+  --chart-text-light: #4b5563;
+  --chart-axis-text: #374151;
+  --label-text-color: #1f2937;
+  --tooltip-bg: #1f2937;
+  --tooltip-text: #ffffff;
+
+  /* UI Elements */
+  --primary-color: #2c3e50;
+  --success-color: rgba(45, 64, 152, 0.15);
+  --success-hover: #30498a;
+  --border-color: #e5e7eb;
+  --chart-border: #d1d5db;
+  --chart-grid: rgba(0, 0, 0, 0.1);
+
+  /* Shadows */
+  --shadow-light: rgba(0, 0, 0, 0.05);
+  --shadow-medium: rgba(0, 0, 0, 0.1);
+  --shadow-dark: rgba(0, 0, 0, 0.15);
+  --chart-tooltip-bg: rgba(0, 0, 0, 0.8);
+
+  /* Tables */
+  --table-odd: #f9fafb;
+  --table-even: #ffffff;
+  --table-header: #f3f4f6;
+}
+
+/* ============================================
+   DARK MODE
+   ============================================ */
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+
+    /* Backgrounds */
+    --bg-main: #111827;
+    --bg-second: #1f2937;
+    --bg-third: #17171a;
+    --panel-left-bg: #374151;
+    --panel-right-bg: #0b0b0b;
+    --box-bg: #1f2937;
+    --header-bg: #1f2937;
+    --input-bg: #374151;
+    --preview-bg: #1f2937;
+
+    /* Text */
+    --text-primary: #f9fafb;
+    --text-secondary: #e5e7eb;
+    --text-tertiary: #d1d5db;
+    --text-inverse: #111827;
+    --chart-text: #f0f0f0;
+    --chart-text-light: #d1d5db;
+    --chart-axis-text: #f9fafb;
+    --label-text-color: #f9fafb;
+    --tooltip-bg: #374151;
+    --tooltip-text: #ffffff;
+
+    /* UI Elements */
+    --primary-color: #60a5fa;
+    --success-color: rgba(45, 64, 152, 0.42);
+    --success-hover: #4f6bb8;
+    --border-color: #374151;
+    --chart-border: #4b5563;
+    --chart-grid: rgba(255, 255, 255, 0.1);
+
+    /* Shadows */
+    --shadow-light: rgba(0, 0, 0, 0.2);
+    --shadow-medium: rgba(0, 0, 0, 0.3);
+    --shadow-dark: rgba(0, 0, 0, 0.4);
+    --chart-tooltip-bg: rgba(0, 0, 0, 0.9);
+
+    /* Tables */
+    --table-odd: #1f2937;
+    --table-even: #111827;
+    --table-header: #374151;
+  }
+}
+
+/* ============================================
+   RESETS & BASE STYLES
+   ============================================ */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: auto;
+  overflow-y: auto;
+  overscroll-behavior-y: auto;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+
+body {
+  color: var(--text-primary);
+  background-color: var(--bg-main);
+  font-family: Inter, system-ui, sans-serif;
+  font-optical-sizing: auto;
+  font-weight: 200;
+  font-style: normal;
+  font-variation-settings:
+    "slnt" 0,
+    "wdth" 100,
+    "GRAD" 0,
+    "XOPQ" 96,
+    "XTRA" 468,
+    "YOPQ" 79,
+    "YTAS" 750,
+    "YTDE" -203,
+    "YTFI" 738,
+    "YTLC" 514,
+    "YTUC" 712;
+}
+
+/* ============================================
+   TYPOGRAPHY
+   ============================================ */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  margin: auto;
+  text-align: center;
+  line-height: var(--line-height-heading);
+}
+
+h1 {
+  font-size: var(--font-scale-1);
+  font-weight: 500;
+  max-width: 770px;
+}
+
+h2 {
+  font-size: var(--font-scale-2);
+  font-weight: 400;
+  max-width: 770px;
+}
+
+h3 {
+  font-size: var(--font-scale-3);
+  font-weight: 300;
+}
+
+h4 {
+  font-size: var(--font-scale-4);
+  font-weight: 400;
+}
+
+h5 {
+  font-size: var(--font-scale-5);
+  font-weight: 300;
+}
+
+h6 {
+  font-size: var(--font-scale-6);
+  font-weight: 400;
+}
+
+p,
+th {
+  font-size: var(--font-body);
+  font-weight: 400;
+  line-height: var(--line-height-body);
+  margin: 16px auto 0;
+}
+
+p {
+  text-align: left;
+}
+/* ============================================
+   FORM ELEMENTS
+   ============================================ */
+select,
+input {
+  flex: 1;
+  padding: 8px 10px;
+  font-size: 1rem;
+  font-weight: 100;
+  border-radius: 6px;
+  box-shadow: 0 1px 4px var(--shadow-light);
+  transition: box-shadow 0.2s ease;
+}
+
+select {
+  background: var(--input-bg);
+}
+
+/* ============================================
+   UTILITY CLASSES
+   ============================================ */
+.border {
+  border-radius: 6px;
+  background: var(--bg-second);
+  border: 1px solid var(--chart-border);
+  box-shadow: 0 1px 4px var(--shadow-light);
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.fade-visible {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+
+.fade-hidden {
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+
+.section {
+  width: 100%;
+  color: var(--black);
+}
+
+.wrapper {
+  max-width: 1440px;
+  margin-inline: auto;
+  padding: 60px;
+  display: flex;
+  flex-direction: column;
+  gap: 64px;
+}
+
+.video {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border-radius: 12px;
+}
+
+/* ============================================
+   ANIMATIONS
+   ============================================ */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+@media (max-width: 768px) {
+  .section {
+    padding: 32px 16px;
+  }
+  
+  .wrapper {
+    padding: 32px 16px;
+  }
+}

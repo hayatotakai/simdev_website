@@ -1,0 +1,480 @@
+---
+import Layout from '../../layouts/BaseLayout.astro';
+---
+
+<Layout>
+<style>
+  /* ============================================
+     LAYOUT
+     ============================================ */
+  main {
+    flex: 1;
+    display: flex;
+    flex-direction: row;
+    gap: 20px;
+    padding: 20px;
+  }
+
+  .conversions,
+  .calculator {
+    flex: 1;
+    overflow-y: auto;
+  }
+
+  /* ============================================
+     TYPOGRAPHY
+     ============================================ */
+  h3 {
+    width: 200px;
+    margin: 0 0 12px 0;
+  }
+
+  /* ============================================
+     CONVERSION ROWS
+     ============================================ */
+  .unit-row {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .row-inline {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  .row-inline label {
+    width: 130px;
+    text-align: left;
+    flex-shrink: 0;
+    font-weight: 500;
+  }
+
+  /* ============================================
+     FORM ELEMENTS
+     ============================================ */
+  .value {
+    flex: 1;
+    min-width: 100px;
+    padding: 8px 10px;
+    font-size: 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background: var(--input-bg);
+    color: var(--text-primary);
+    transition: border-color 0.2s ease;
+  }
+
+  .value:focus {
+    outline: none;
+    border-color: var(--primary-color);
+  }
+
+  .unit {
+    width: 80px;
+    padding: 8px 10px;
+    font-size: 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background: var(--input-bg);
+    color: var(--text-primary);
+  }
+
+  /* ============================================
+     CONVERSION ARROW
+     ============================================ */
+  span {
+    width: 50px;
+    text-align: center;
+    font-size: 1.2rem;
+    color: var(--text-secondary);
+  }
+
+  /* ============================================
+     RESPONSIVE
+     ============================================ */
+  @media (max-width: 900px) {
+    main {
+      flex-direction: column;
+    }
+  }
+</style>
+<body>
+
+
+<main>
+ <!-- Left: Unit Conversions -->
+  <div class="conversions">
+    <h2>Engineering Unit Converter</h2>
+
+    <!-- Length -->
+    <div class="border">
+      <div class="unit-row">
+          <h3>Length</h3>
+        <div class="row-inline">
+          <input id="lengthValueA" class="value" type="number" value="1" step="any"/>
+          <select id="lengthUnitA" class="unit"></select>
+          <span>↔</span>
+          <input id="lengthValueB" class="value" type="number" value="1" step="any"/>
+          <select id="lengthUnitB" class="unit"></select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Temperature -->
+    <div class="border">
+      <div class="unit-row">  
+        <h3>Temperature</h3>
+        <div class="row-inline">
+          <input id="temperatureValueA" class="value" type="number" value="32" step="any"/>
+          <select id="temperatureUnitA" class="unit"></select>
+          <span>↔</span>
+          <input id="temperatureValueB" class="value" type="number" value="0" step="any"/>
+          <select id="temperatureUnitB" class="unit"></select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Density -->
+    <div class="border">
+      <div class="unit-row">
+          <h3>Density</h3>
+        <div class="row-inline">
+          <input id="densityValueA" class="value" type="number" value="1" step="any"/>
+          <select id="densityUnitA" class="unit"></select>
+          <span>↔</span>
+          <input id="densityValueB" class="value" type="number" value="1" step="any"/>
+          <select id="densityUnitB" class="unit"></select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Kinematic Viscosity -->
+    <div class="border">
+      <div class="unit-row">
+          <h3>Kinematic Viscosity</h3>
+        <div class="row-inline">
+          <input id="kinViscValueA" class="value" type="number" value="1" step="any"/>
+          <select id="kinViscUnitA" class="unit"></select>
+          <span>↔</span>
+          <input id="kinViscValueB" class="value" type="number" value="1" step="any"/>
+          <select id="kinViscUnitB" class="unit"></select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Dynamic Viscosity -->
+    <div class="border">
+      <div class="unit-row">
+          <h3>Dynamic Viscosity</h3>
+        <div class="row-inline">
+          <input id="dynViscValueA" class="value" type="number" value="1" step="any"/>
+          <select id="dynViscUnitA" class="unit"></select>
+          <span>↔</span>
+          <input id="dynViscValueB" class="value" type="number" value="1" step="any"/>
+          <select id="dynViscUnitB" class="unit"></select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Volume -->
+    <div class="border">
+      <div class="unit-row">
+          <h3>Volume</h3>
+        <div class="row-inline">
+          <input id="volumeValueA" class="value" type="number" value="1" step="any"/>
+          <select id="volumeUnitA" class="unit"></select>
+          <span>↔</span>
+          <input id="volumeValueB" class="value" type="number" value="1" step="any"/>
+          <select id="volumeUnitB" class="unit"></select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Flow Rate -->
+    <div class="border">
+      <div class="unit-row">
+          <h3>Flow Rate</h3>
+        <div class="row-inline">
+          <input id="flowValueA" class="value" type="number" value="1" step="any"/>
+          <select id="flowUnitA" class="unit"></select>
+          <span>↔</span>
+          <input id="flowValueB" class="value" type="number" value="1" step="any"/>
+          <select id="flowUnitB" class="unit"></select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pressure -->
+    <div class="border">
+      <div class="unit-row">
+          <h3>Pressure</h3>
+        <div class="row-inline">
+          <input id="pressureValueA" class="value" type="number" value="1" step="any"/>
+          <select id="pressureUnitA" class="unit"></select>
+          <span>↔</span>
+          <input id="pressureValueB" class="value" type="number" value="1" step="any"/>
+          <select id="pressureUnitB" class="unit"></select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Force -->
+    <div class="border">
+      <div class="unit-row">
+        <h3>Force</h3>
+        <div class="row-inline">
+          <input id="forceValueA" class="value" type="number" value="1" step="any"/>
+          <select id="forceUnitA" class="unit"></select>
+          <span>↔</span>
+          <input id="forceValueB" class="value" type="number" value="1" step="any"/>
+          <select id="forceUnitB" class="unit"></select>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Area -->
+    <div class="border">
+      <div class="unit-row">
+        <h3>Area</h3>
+        <div class="row-inline">
+          <input id="areaValueA" class="value" type="number" value="1" step="any"/>
+          <select id="areaUnitA" class="unit"></select>
+          <span>↔</span>
+          <input id="areaValueB" class="value" type="number" value="1" step="any"/>
+          <select id="areaUnitB" class="unit"></select>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right: Calculators -->
+  <div class="calculator">
+    <h2>Calculators</h2>
+
+    <!-- Pipe Velocity -->
+    <div class="border">
+      <h3>Pipe Velocity</h3>
+      <div class="row-inline">
+        <label>Diameter:</label>
+        <input id="pipeDiameter" class="value" type="number" value="1.0" step="any" min="0"/>
+        <select id="pipeDiameterUnit" class="unit">
+          <option>m</option><option selected>mm</option><option selected>in</option>
+        </select>
+      </div>
+      <div class="row-inline">
+        <label>Flow Rate:</label>
+        <input id="pipeFlow" class="value" type="number" value="1.0" step="any" min="0"/>
+        <select id="pipeFlowUnit" class="unit">
+          <option>m^3/s</option><option>L/s</option><option selected>GPM</option>
+        </select>
+      </div>
+      <div class="row-inline">
+        <label>Velocity:</label>
+        <input id="pipeVelocity" class="value" type="number" value="0" step="any" min="0"/>
+        <select id="pipeVelocityUnit" class="unit">
+          <option selected>m/s</option><option>ft/s</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Circle Area -->
+    <div class="border">
+      <h3>Circle Area</h3>
+      <div class="row-inline">
+        <label>Diameter:</label>
+        <input id="circleDiameter" class="value" type="number" value="1" step="any" min="0"/>
+        <select id="circleDiameterUnit" class="unit">
+          <option>m</option><option>mm</option><option selected>in</option>
+        </select>
+      </div>
+      
+      <div class="row-inline">
+        <label>Area:</label>
+        <input id="circleArea" class="value" type="number" value="1" step="any" min="0"/>
+        <select id="circleAreaUnit" class="unit">
+          <option selected>m^2</option><option>mm^2</option><option>in^2</option>
+        </select>
+      </div>
+    </div>
+<!-- Reynolds Number -->
+<div class="border">
+  <h3>Reynolds Number</h3>
+
+  <div class="row-inline">
+    <label>Density (ρ):</label>
+    <input id="reDensity" class="value" type="number" value="1000" step="any" min="0"/>
+    <select id="reDensityUnit" class="unit">
+      <option selected>kg/m^3</option>
+      <option>g/cm^3</option>
+      <option>lb/ft^3</option>
+    </select>
+  </div>
+
+  <div class="row-inline">
+    <label>Velocity (V):</label>
+    <input id="reVelocity" class="value" type="number" value="1" step="any" min="0"/>
+    <select id="reVelocityUnit" class="unit">
+      <option selected>m/s</option>
+      <option>ft/s</option>
+    </select>
+  </div>
+
+  <div class="row-inline">
+    <label>Diameter (D):</label>
+    <input id="reDiameter" class="value" type="number" value="0.05" step="any" min="0"/>
+    <select id="reDiameterUnit" class="unit">
+      <option selected>m</option>
+      <option>mm</option>
+      <option>in</option>
+    </select>
+  </div>
+
+  <div class="row-inline">
+    <label>Dyn. Viscosity (μ):</label>
+    <input id="reDynVisc" class="value" type="number" value="0.001" step="any" min="0"/>
+    <select id="reDynViscUnit" class="unit">
+      <option selected>Pa·s</option>
+      <option>cP</option>
+      <option>lb·s/ft^2</option>
+    </select>
+  </div>
+
+  <div class="row-inline">
+    <label>Reynolds No.:</label>
+    <input id="reValue" class="value" type="number" value="0" readonly/>
+  </div>
+</div>
+
+  </div>
+</main>
+
+<script src="/scripts/unit_converter.js" is:client></script>
+<script src="/scripts/calculators.js" is:client></script>
+
+<script>
+// ========== CONSTANTS ==========
+const SECTION_MAP = {
+  length: { unitType: "length", defaultA: "in", defaultB: "m" },
+  temperature: { unitType: "temperature", defaultA: "F", defaultB: "C" },
+  density: { unitType: "density", defaultA: "g/cm^3", defaultB: "kg/m^3" },
+  kinVisc: { unitType: "kinematic viscosity", defaultA: "cSt", defaultB: "m^2/s" },
+  dynVisc: { unitType: "dynamic viscosity", defaultA: "cP", defaultB: "Pa*s" },
+  volume: { unitType: "volume", defaultA: "gal(US)", defaultB: "L" },
+  flow: { unitType: "flow", defaultA: "gpm", defaultB: "L/min" },
+  pressure: { unitType: "pressure", defaultA: "Pa", defaultB: "psi" },
+  force: { unitType: "force", defaultA: "lbf", defaultB: "N" },
+  area: { unitType: "area", defaultA: "in^2", defaultB: "m^2" }
+};
+
+const DECIMAL_PLACES = 5;
+
+// ========== UNIT CONVERSION SETUP ==========
+
+/**
+ * Initialize unit conversion for a specific section
+ * @param {string} sectionId - The ID prefix for the section
+ * @param {object} config - Configuration object with unitType, defaultA, and defaultB
+ */
+function initializeConversionSection(sectionId, config) {
+  const { unitType, defaultA, defaultB } = config;
+  const unitA = document.getElementById(`${sectionId}UnitA`);
+  const unitB = document.getElementById(`${sectionId}UnitB`);
+  const valA = document.getElementById(`${sectionId}ValueA`);
+  const valB = document.getElementById(`${sectionId}ValueB`);
+
+  if (!unitA || !unitB || !valA || !valB) {
+    console.warn(`Missing elements for section: ${sectionId}`);
+    return;
+  }
+
+  // Populate unit dropdowns
+  try {
+    const units = getAvailableUnits(unitType);
+    units.forEach(unit => {
+      unitA.add(new Option(unit, unit));
+      unitB.add(new Option(unit, unit));
+    });
+    
+    // Set specific default units
+    if (defaultA) {
+      unitA.value = defaultA;
+    }
+    if (defaultB) {
+      unitB.value = defaultB;
+    }
+  } catch (error) {
+    console.error(`Error loading units for ${sectionId}:`, error.message);
+    return;
+  }
+
+  // Prevent infinite update loops
+  let isUpdating = false;
+
+  /**
+   * Convert value from A to B
+   */
+  function convertAtoB() {
+    if (isUpdating) return;
+    isUpdating = true;
+    
+    const value = parseFloat(valA.value);
+    if (Number.isFinite(value)) {
+      try {
+        const converted = convertUnit(unitA.value, unitB.value, value);
+        valB.value = converted.toFixed(DECIMAL_PLACES);
+      } catch (error) {
+        console.error(`Conversion error in ${sectionId}:`, error.message);
+        valB.value = "Error";
+      }
+    } else {
+      valB.value = "";
+    }
+    
+    isUpdating = false;
+  }
+
+  /**
+   * Convert value from B to A
+   */
+  function convertBtoA() {
+    if (isUpdating) return;
+    isUpdating = true;
+    
+    const value = parseFloat(valB.value);
+    if (Number.isFinite(value)) {
+      try {
+        const converted = convertUnit(unitB.value, unitA.value, value);
+        valA.value = converted.toFixed(DECIMAL_PLACES);
+      } catch (error) {
+        console.error(`Conversion error in ${sectionId}:`, error.message);
+        valA.value = "Error";
+      }
+    } else {
+      valA.value = "";
+    }
+    
+    isUpdating = false;
+  }
+
+  // Event listeners
+  valA.addEventListener("input", convertAtoB);
+  valB.addEventListener("input", convertBtoA);
+  unitA.addEventListener("change", convertAtoB);
+  unitB.addEventListener("change", convertAtoB);
+
+  // Initialize with default values
+  convertAtoB();
+}
+
+// Initialize all conversion sections
+Object.entries(SECTION_MAP).forEach(([sectionId, config]) => {
+  initializeConversionSection(sectionId, config);
+});
+
+</script>
+</Layout>

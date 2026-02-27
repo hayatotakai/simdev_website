@@ -1,0 +1,339 @@
+---
+import Layout from '../../layouts/BaseLayout.astro';
+---
+
+<Layout>
+<style>
+  /* ============================================
+     LAYOUT
+     ============================================ */
+  .content {
+    width: 75%;
+    margin: auto;
+    padding: 20px;
+    transition: box-shadow 0.2s ease;
+  }
+
+  #properties {
+    width: 80%;
+    max-width: 800px;
+    margin: auto;
+  }
+
+  /* ============================================
+     HEADER
+     ============================================ */
+  .header-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    margin-bottom: 20px;
+    gap: 20px;
+  }
+
+  .content h1 {
+    text-align: center;
+    margin: 0;
+    flex: 0 0 auto;
+  }
+
+  .header-container > div:last-child {
+    position: absolute;
+    right: 0;
+    display: flex;
+    gap: 10px;
+  }
+
+  /* ============================================
+     FLUID SELECTOR
+     ============================================ */
+  .fluid-select-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 20px 0;
+    gap: 8px;
+  }
+
+  .fluid-select-container label {
+    margin-bottom: 5px;
+    font-weight: bold;
+  }
+
+  #fluidSelect {
+    padding: 6px 10px;
+    font-size: 14px;
+    min-width: 250px;
+  }
+
+  #tempInput {
+    padding: 6px 10px;
+    font-size: 14px;
+    min-width: 250px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+  }
+
+  .optional {
+    font-weight: normal;
+    font-size: 0.9em;
+    opacity: 0.7;
+  }
+
+  .input-hint {
+    font-size: 0.85em;
+    opacity: 0.7;
+    font-style: italic;
+    margin-top: -4px;
+    text-align: center;
+  }
+
+  /* ============================================
+     OIL TITLE
+     ============================================ */
+  #oilTitle {
+    text-align: center;
+    font-weight: bold;
+    margin: 15px 0 20px;
+  }
+
+  /* ============================================
+     FORM ELEMENTS
+     ============================================ */
+  select,
+  button {
+    margin: 10px 0;
+    padding: 5px;
+  }
+
+  /* ============================================
+     TEMPERATURE HEADER
+     ============================================ */
+  .temp-header-container,
+  .prop-header-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .temp-unit-select,
+  .prop-unit-select {
+    padding: 4px 8px;
+    font-size: 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 3px;
+    background: var(--table-header);
+    color: var(--text-primary);
+    cursor: pointer;
+  }
+
+  /* ============================================
+     TABLES
+     ============================================ */
+  .table-container {
+    width: 100%;
+    overflow-x: auto;
+  }
+
+  table {
+    border-radius: 6px;
+    border-collapse: collapse;
+    margin: 10px auto;
+    width: 100%;
+    overflow: hidden;
+  }
+
+  table th,
+  table td {
+    border: 1px solid var(--border-color);
+    padding: 8px 12px;
+    text-align: center !important;
+    vertical-align: middle !important;
+  }
+
+  table th {
+    background: var(--table-header);
+    font-weight: 600;
+    color: var(--text-primary);
+    position: sticky;
+    top: 0;
+  }
+
+  table tbody tr {
+    transition: background-color 0.2s ease;
+  }
+
+  table tbody tr:hover {
+    background: var(--bg-third);
+  }
+
+  table tbody tr:nth-child(even) td {
+    background: var(--table-even);
+  }
+
+  table tbody tr:nth-child(odd) td {
+    background: var(--table-odd);
+  }
+
+  table tbody tr:hover td {
+    opacity: 0.9;
+  }
+
+  table tr.updated {
+    animation: highlightRow 0.5s ease;
+  }
+
+  @keyframes highlightRow {
+    0%,
+    100% {
+      background-color: transparent;
+    }
+    50% {
+      background-color: var(--success-color);
+    }
+  }
+
+  /* ============================================
+     BUTTONS
+     ============================================ */
+  .btn {
+    padding: 8px 16px;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.2s ease;
+  }
+
+  .btn-data {
+    background-color: #28a745;
+  }
+
+  .btn-data:hover {
+    background-color: #218838;
+  }
+
+  .btn-docs {
+    background-color: #0066cc;
+  }
+
+  .btn-docs:hover {
+    background-color: #0052a3;
+  }
+
+  .button-group {
+    display: flex;
+    gap: 10px;
+  }
+
+  /* ============================================
+     UTILITY CLASSES
+     ============================================ */
+  .hidden {
+    display: none;
+  }
+</style>
+<main>
+    <div class="content border">
+    <div class="header-container">
+      <h1>Oil Property Search</h1>
+      <div class="button-group">
+        <a href="/components/fluid_data.json" target="_blank" rel="noopener noreferrer">
+          <button class="btn btn-data">Get Raw Data</button>
+        </a>
+        <a href="/helpers/documentation?readme=/scripts/oil_properties/README.md" target="_blank" rel="noopener noreferrer">
+          <button class="btn btn-docs">See Documentation</button>
+        </a>
+      </div>
+    </div>
+
+    <!-- Centered Fluid Selector -->
+    <div class="fluid-select-container">
+      <label for="fluidSelect">Select Fluid:</label>
+      <select id="fluidSelect">
+        <option value="">-- Select --</option>
+      </select>
+      
+      <label for="tempInput">Temperature (°C) <span class="optional">(optional)</span>:</label>
+      <input 
+        type="number" 
+        id="tempInput" 
+        placeholder="Leave empty for full range" 
+        step="1.0"
+        min="-40"
+        max="100"
+      />
+      <small class="input-hint">Enter a temperature or leave empty to see the full range (-40°C to 100°C)</small>
+    </div>
+
+    <!-- Oil Title shows after selection -->
+    <div id="properties" class="hidden">
+
+      <h3>Calculated Properties</h3>
+      <div>
+        <label for="col2Sel">Copy: Temperature and </label>
+        <select id="col2Sel">
+          <option value="1">Kinematic Viscosity (mm²/s)</option>
+          <option value="2">Density (kg/m³)</option>
+          <option value="3">Dynamic Viscosity (Pa·s)</option>
+        </select>
+        <button id="copyBtn">Copy to Clipboard</button>
+      </div>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>
+                <div class="temp-header-container">
+                  <span>Temperature</span>
+                  <select id="tempUnitSelect" class="temp-unit-select">
+                    <option value="K">K</option>
+                    <option value="C">°C</option>
+                    <option value="F">°F</option>
+                  </select>
+                </div>
+              </th>
+              <th>
+                <div class="prop-header-container">
+                  <span>Kinematic Viscosity</span>
+                  <select id="kinViscUnitSelect" class="prop-unit-select"></select>
+                </div>
+              </th>
+              <th>
+                <div class="prop-header-container">
+                  <span>Density</span>
+                  <select id="densityUnitSelect" class="prop-unit-select"></select>
+                </div>
+              </th>
+              <th>
+                <div class="prop-header-container">
+                  <span>Dynamic Viscosity</span>
+                  <select id="dynViscUnitSelect" class="prop-unit-select"></select>
+                </div>
+              </th>
+            </tr>
+          </thead>
+          <tbody id="calculatedTableBody"></tbody>
+        </table>
+      </div>
+            <p><strong>Density at 15°C:</strong> <span id="density"></span></p>
+
+            <h4>Raw Viscosity Data</h4>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr><th>Temp (K)</th><th>Kinematic Viscosity (mm²/s)</th></tr>
+          </thead>
+          <tbody id="viscosityTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+    </div>
+  </main>
+  </Layout>
+    <script src="/scripts/unit_converter.js" is:client></script>
+    <script src="/scripts/oil_properties/oil_properties.js" is:client ></script>
+  <script src="/scripts/oil_properties/getOilProperties.js" is:client ></script>

@@ -1,0 +1,104 @@
+---
+import Layout from '../layouts/BaseLayout.astro';
+
+
+
+
+
+import Advantages from '../components/Advantages.astro';
+import Lineup from '../components/lineup.astro';
+
+import Comparison from '../components/Comparison.astro';
+import Contact from '../components/Contact.astro';
+import Features from '../components/features.astro';
+import ValueHypothesisTable from '../components/ValueHypothesisTable.astro';
+import TankReduction from '../components/tank-reduction.astro';
+import Signup from '../components/signup.astro';
+
+const advantagesData = [
+  {
+    title: "Performance",
+    description: "Improved de‑aeration for higher machine reliability",
+    icon: `<svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="16" cy="18" r="4" stroke="currentColor" stroke-width="2"/>
+      <circle cx="28" cy="12" r="3" stroke="currentColor" stroke-width="2"/>
+      <circle cx="30" cy="26" r="6" stroke="currentColor" stroke-width="2"/>
+      <path d="M12 36c8-4 16-4 24 0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    </svg>`
+  },
+  {
+    title: "Efficiency",
+    description: "Reduced oil volume lowers operating and environmental costs",
+    icon: `<svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M10 14h28" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      <path d="M14 22h20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      <path d="M18 30h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      <path d="M24 34v6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    </svg>`
+  },
+  {
+    title: "Design",
+    description: "Smaller tanks free up space and reduce material usage",
+    icon: `<svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="6" y="6" width="36" height="36" rx="4" stroke="currentColor" stroke-width="2" stroke-dasharray="4 4"/>
+      <rect x="16" y="16" width="16" height="16" rx="3" stroke="currentColor" stroke-width="2" fill="none"/>
+    </svg>`
+  },
+  {
+    title: "Manufacturing",
+    description: "Simplified fittings reduce assembly and component cost",
+    icon: `<svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="14" cy="24" r="4" stroke="currentColor" stroke-width="2"/>
+      <circle cx="34" cy="24" r="4" stroke="currentColor" stroke-width="2"/>
+      <path d="M18 24h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      <path d="M24 14v-6M24 34v6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    </svg>`
+  }
+];
+---
+<Layout>
+<style>
+@import "../styles/filter_technology.css";
+</style>
+    <main>
+ <section class="subheading">
+  <h1>Hydac Air-X Technology for Tank Reduction</h1>
+<h3>Discover our line of air eliminating filters that reduced tank oil volume and size</h3>
+</section>
+<Signup />
+<Comparison />
+
+<Advantages advantages={advantagesData} />
+
+<Features />
+
+<TankReduction />
+
+<Lineup />
+
+
+<ValueHypothesisTable
+  returnLineFiltersStandard={"Competitor"}
+  returnLineFiltersSolution={"HYDAC AIR-X"}
+  oilVolumeStandard={23.8}
+  oilVolumeSolution={16.6}
+  tankWeightStandard={218.3}
+  tankWeightSolution={152.8}
+  oilTurnoverStandard={2.1}
+  oilTurnoverSolution={5.5}
+  oilCostPerGallon={6.75}
+  tankCostPerLb={0.34}
+  units={1000}/>
+
+  <Contact />
+
+
+
+
+
+
+
+  </main>
+</Layout>
+
+
