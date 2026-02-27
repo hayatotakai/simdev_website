@@ -10,6 +10,8 @@ function cleanName(filename) {
     .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
+const basePath = import.meta.env.BASE_URL;
+
 // Load top-level pages from /pages/*.astro
 const sitePages = import.meta.glob('../pages/*.astro');
 const topLevelLinks = Object.keys(sitePages)
@@ -18,7 +20,7 @@ const topLevelLinks = Object.keys(sitePages)
   .map((path) => {
     const filename = path.split('/').pop().replace('.astro', '');
     return {
-      url: `/${filename}`,
+      url: `${basePath}${filename}`,
       title: cleanName(filename)
     };
   });
@@ -29,7 +31,7 @@ const toolLinks = Object.keys(toolPages)
   .map((path) => {
     const filename = path.split('/').pop().replace('.astro', '');
     return {
-      url: `/tools/${filename}`,
+      url: `${basePath}tools/${filename}`,
       title: cleanName(filename)
     };
   });
