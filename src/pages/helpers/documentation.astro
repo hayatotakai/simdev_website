@@ -367,7 +367,8 @@ import Layout from '../../layouts/readmeViewer.astro';
         window.history.back();
       } else {
         // If no history, go to home or tools page
-        window.location.href = '/tools/oil_properties';
+        const basePath = document.baseURI.replace(/\/$/, '');
+        window.location.href = basePath + '/tools/oil_properties';
       }
     });
   }
