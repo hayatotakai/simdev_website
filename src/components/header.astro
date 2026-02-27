@@ -14,7 +14,7 @@ function cleanName(filename) {
 const sitePages = import.meta.glob('../pages/*.astro');
 const topLevelLinks = Object.keys(sitePages)
   .filter((path) => !path.endsWith('index.astro'))
-  .filter((path) => !path.endsWith('Filter Technology.astro'))
+  .filter((path) => !path.endsWith('filter-technology.astro'))
   .map((path) => {
     const filename = path.split('/').pop().replace('.astro', '');
     return {
