@@ -10,7 +10,7 @@ function cleanName(filename) {
     .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-const BASE_PATH = '/simdev_website';
+const BASE_PATH = import.meta.env.BASE_URL.replace(/\/$/, '');
 
 // Load top-level pages from /pages/*.astro
 const sitePages = import.meta.glob('../pages/*.astro');
