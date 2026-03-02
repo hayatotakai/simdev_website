@@ -118,6 +118,58 @@ const unitTypeRegistry = {
   force: forceFactors
 };
 
+// ========== MEASUREMENT REGISTRY ==========
+/**
+ * Maps measurement keys to display names and their unit type keys
+ * used by getAvailableUnits().
+ */
+const measurementRegistry = {
+  length:             { displayName: "Length",              unitType: "length",              defaultFrom: "in",      defaultTo: "m"       },
+  area:               { displayName: "Area",                unitType: "area",                defaultFrom: "in^2",    defaultTo: "m^2"     },
+  temperature:        { displayName: "Temperature",         unitType: "temperature",         defaultFrom: "F",       defaultTo: "C"       },
+  density:            { displayName: "Density",             unitType: "density",             defaultFrom: "lb/ft^3", defaultTo: "kg/m^3"  },
+  kinematicViscosity: { displayName: "Kinematic Viscosity", unitType: "kinematic viscosity", defaultFrom: "mm^2/s",  defaultTo: "cSt"     },
+  dynamicViscosity:   { displayName: "Dynamic Viscosity",   unitType: "dynamic viscosity",   defaultFrom: "cP",      defaultTo: "Pa*s"    },
+  volume:             { displayName: "Volume",              unitType: "volume",              defaultFrom: "gal(US)", defaultTo: "L"       },
+  flow:               { displayName: "Flow Rate",           unitType: "flow",                defaultFrom: "gpm",     defaultTo: "L/min"   },
+  pressure:           { displayName: "Pressure",            unitType: "pressure",            defaultFrom: "Pa",      defaultTo: "bar"     },
+  force:              { displayName: "Force",               unitType: "force",               defaultFrom: "N",       defaultTo: "lbf"     }
+};
+
+/**
+ * Display names for individual units (maps abbreviation → readable label)
+ */
+const unitDisplayNames = {
+  // Length
+  "m": "Meter (m)", "cm": "Centimeter (cm)", "mm": "Millimeter (mm)",
+  "in": "Inch (in)", "ft": "Foot (ft)",
+  // Area
+  "m^2": "Square Meter (m²)", "cm^2": "Square Centimeter (cm²)",
+  "mm^2": "Square Millimeter (mm²)", "in^2": "Square Inch (in²)", "ft^2": "Square Foot (ft²)",
+  // Temperature
+  "C": "Celsius (°C)", "F": "Fahrenheit (°F)", "K": "Kelvin (K)",
+  // Density
+  "kg/m^3": "kg/m³", "g/cm^3": "g/cm³", "lb/ft^3": "lb/ft³",
+  // Kinematic viscosity
+  "m^2/s": "m²/s", "mm^2/s": "mm²/s", "cSt": "Centistokes (cSt)",
+  // Dynamic viscosity
+  "Pa*s": "Pascal-second (Pa·s)", "mPa*s": "mPa·s", "cP": "Centipoise (cP)",
+  // Volume
+  "m^3": "Cubic Meter (m³)", "L": "Liter (L)", "mL": "Milliliter (mL)",
+  "in^3": "Cubic Inch (in³)", "ft^3": "Cubic Foot (ft³)",
+  "gal(US)": "US Gallon", "gal(UK)": "UK Gallon",
+  // Flow
+  "m^3/s": "m³/s", "L/s": "L/s", "L/min": "L/min",
+  "gpm": "GPM (US gal/min)", "gal/h": "gal/h",
+  "ft^3/s": "ft³/s", "kg/s": "kg/s", "lb/s": "lb/s",
+  // Pressure
+  "Pa": "Pascal (Pa)", "kPa": "Kilopascal (kPa)", "MPa": "Megapascal (MPa)",
+  "GPa": "Gigapascal (GPa)", "bar": "Bar", "psi": "PSI", "atm": "Atmosphere (atm)",
+  // Force
+  "N": "Newton (N)", "kN": "Kilonewton (kN)",
+  "lbf": "Pound-force (lbf)", "kgf": "Kilogram-force (kgf)"
+};
+
 // ========== HELPER FUNCTIONS ==========
 
 /**
@@ -178,6 +230,60 @@ function temperatureFromKelvin(unit, valueK) {
     default:
       throw new Error(`Unsupported temperature unit: ${unit}`);
   }
+}
+
+// ========== GET AVAILABLE MEASUREMENTS ==========
+
+/**
+ * Get the list of all available measurement categories.
+ *
+ * @returns {{ key: string, displayName: string, unitType: string }[]}
+ *   Array of measurement objects with key, displayName, and unitType.
+ *
+ * @example
+ * getAvailableMeasurements()
+ * // Returns: [{ key: "length", displayName: "Length", unitType: "length" }, ...]
+ */
+function getAvailableMeasurements() {
+  return Object.entries(measurementRegistry).map(([key, info]) => ({
+    key,
+    displayName: info.displayName,
+    unitType: info.unitType
+  }));
+}
+
+/**
+ * Get a human-readable display name for a unit abbreviation.
+ *
+ * @param {string} unit - Unit abbreviation (e.g., "m", "Pa", "cSt")
+ * @returns {string} Display name, or the abbreviation itself if no mapping exists.
+ *
+ * @example
+ * getUnitDisplayName("m")   // "Meter (m)"
+ * getUnitDisplayName("psi") // "PSI"
+ */
+function getUnitDisplayName(unit) {
+  return unitDisplayNames[unit] || unit;
+}
+
+/**
+ * Get the default "from" unit for a measurement category.
+ * @param {string} key - Measurement key (e.g., "length", "kinematicViscosity")
+ * @returns {string|null} Default from-unit abbreviation, or null if key not found
+ */
+function getFromDefault(key) {
+  const entry = measurementRegistry[key];
+  return entry ? entry.defaultFrom : null;
+}
+
+/**
+ * Get the default "to" unit for a measurement category.
+ * @param {string} key - Measurement key (e.g., "length", "kinematicViscosity")
+ * @returns {string|null} Default to-unit abbreviation, or null if key not found
+ */
+function getToDefault(key) {
+  const entry = measurementRegistry[key];
+  return entry ? entry.defaultTo : null;
 }
 
 // ========== GET AVAILABLE UNITS ==========
@@ -334,6 +440,10 @@ function convertUnit(originalUnit, newUnit, value) {
 if (typeof window !== "undefined") {
   window.convertUnit = convertUnit;
   window.getAvailableUnits = getAvailableUnits;
+  window.getAvailableMeasurements = getAvailableMeasurements;
+  window.getUnitDisplayName = getUnitDisplayName;
+  window.getFromDefault = getFromDefault;
+  window.getToDefault = getToDefault;
   window.isValidUnit = isValidUnit;
 }
 
@@ -342,6 +452,10 @@ if (typeof module !== "undefined" && module.exports) {
   module.exports = {
     convertUnit,
     getAvailableUnits,
+    getAvailableMeasurements,
+    getUnitDisplayName,
+    getFromDefault,
+    getToDefault,
     isValidUnit,
     // Export constants for testing
     lengthFactors,

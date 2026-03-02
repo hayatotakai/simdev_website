@@ -1,11 +1,11 @@
 ---
+import Layout from '../../layouts/BaseLayout.astro';
+const BASE_PATH = import.meta.env.BASE_URL.replace(/\/$/, '');
 ---
 
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>3D Tank Visualizer - Realistic Oil Volume</title>
-</head>
+
+<Layout>
+
 
 <main class="page">
   <div id="input-container">
@@ -75,7 +75,7 @@
   </div>
   <div id="canvas-container" aria-label="3D tank canvas"></div>
 </main>
-
+</Layout>
 <style>
   :global(body) {
     margin: 0;

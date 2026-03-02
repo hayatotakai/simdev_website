@@ -1,412 +1,370 @@
-// ========== PIPE VELOCITY CALCULATOR ==========
+// ========== UTILITY: UNIT CONVERSION HELPERS ==========
 
 /**
- * Initialize the pipe velocity calculator
- * Calculates: V = Q / A, where A = π(D/2)²
+ * Convert a value from any supported unit to its SI base unit.
+ * SI base units: length → m, area → m^2, velocity → m/s,
+ *                flow → m^3/s, density → kg/m^3, dynVisc → Pa*s
+ *
+ * @param {number} value
+ * @param {string} fromUnit
+ * @param {string} siUnit - SI target unit string
+ * @returns {number} Value in SI units
+ */
+function toSIUnit(value, fromUnit, siUnit) {
+  try {
+    return convertUnit(fromUnit, siUnit, value);
+  } catch {
+    return value;
+  }
+}
+
+/**
+ * Convert a value from an SI base unit to any target unit.
+ *
+ * @param {number} value - Value in SI units
+ * @param {string} siUnit - SI source unit string
+ * @param {string} toUnit
+ * @returns {number} Value in target unit
+ */
+function fromSIUnit(value, siUnit, toUnit) {
+  try {
+    return convertUnit(siUnit, toUnit, value);
+  } catch {
+    return value;
+  }
+}
+
+/**
+ * Populate a <select> element with all units for a given unit type.
+ * Uses getAvailableUnits() and getUnitDisplayName() from unit_converter.js.
+ *
+ * @param {HTMLSelectElement} selectEl
+ * @param {string} unitType - e.g. "length", "flow", "dynamic viscosity"
+ * @param {string} [defaultUnit] - Unit to pre-select
+ */
+function populateUnitSelect(selectEl, unitType, defaultUnit) {
+  const units = getAvailableUnits(unitType);
+  selectEl.innerHTML = '';
+  units.forEach(u => {
+    const label = getUnitDisplayName(u);
+    selectEl.add(new Option(label, u));
+  });
+  if (defaultUnit && units.includes(defaultUnit)) {
+    selectEl.value = defaultUnit;
+  }
+}
+
+// ========== PIPE VELOCITY CALCULATOR ==========
+// Solves V = Q / A, where A = π(D/2)²
+// Diameter or flow edited → recompute velocity
+// Velocity edited → recompute flow (diameter is the fixed geometry)
+
+/**
+ * Initialize the pipe velocity calculator.
+ * Computes V = Q / A  ↔  D = 2√(Q/πV)  ↔  Q = V·π(D/2)²
  */
 function initializePipeVelocityCalculator() {
   const elements = {
-    diameter: document.getElementById("pipeDiameter"),
-    flow: document.getElementById("pipeFlow"),
-    velocity: document.getElementById("pipeVelocity"),
+    diameter:     document.getElementById("pipeDiameter"),
+    flow:         document.getElementById("pipeFlow"),
+    velocity:     document.getElementById("pipeVelocity"),
     diameterUnit: document.getElementById("pipeDiameterUnit"),
-    flowUnit: document.getElementById("pipeFlowUnit"),
+    flowUnit:     document.getElementById("pipeFlowUnit"),
     velocityUnit: document.getElementById("pipeVelocityUnit")
   };
 
-  // Check if all elements exist
-  if (!Object.values(elements).every(el => el)) {
-    console.warn("Pipe velocity calculator elements not found");
+  if (!Object.values(elements).every(Boolean)) {
+    console.warn("Pipe velocity calculator: missing DOM elements");
     return;
   }
 
-  // Initialize oldUnit storage
-  elements.diameterUnit.dataset.oldUnit = elements.diameterUnit.value;
-  elements.flowUnit.dataset.oldUnit = elements.flowUnit.value;
-  elements.velocityUnit.dataset.oldUnit = elements.velocityUnit.value;
+  // Populate unit dropdowns from unit_converter.js data
+  populateUnitSelect(elements.diameterUnit, "length", "mm");
+  populateUnitSelect(elements.flowUnit,     "flow",   "gpm");
+  // Velocity: m/s and ft/s only
+  elements.velocityUnit.innerHTML = '';
+  [["m/s","m/s"],["ft/s","ft/s"]].forEach(([label,val]) =>
+    elements.velocityUnit.add(new Option(label, val))
+  );
 
-  let isUpdating = false;
+  // Store old unit values for unit-change conversions
+  elements.diameterUnit.dataset.old = elements.diameterUnit.value;
+  elements.flowUnit.dataset.old     = elements.flowUnit.value;
+  elements.velocityUnit.dataset.old = elements.velocityUnit.value;
 
-  /**
-   * Convert value to SI units for calculations
-   */
-  function toSI(value, fromUnit, type) {
-    const siUnits = { length: "m", flow: "m^3/s", velocity: "m/s" };
-    try {
-      return convertUnit(fromUnit, siUnits[type], value);
-    } catch {
-      return value;
+  let busy = false;
+
+  // -- V = Q / A (diameter + flow → velocity) --
+  function calcVelocity() {
+    if (busy) return; busy = true;
+    const D = parseFloat(elements.diameter.value);
+    const Q = parseFloat(elements.flow.value);
+    if (Number.isFinite(D) && Number.isFinite(Q) && D > 0) {
+      const D_m   = toSIUnit(D, elements.diameterUnit.value, "m");
+      const Q_m3s = toSIUnit(Q, elements.flowUnit.value,     "m^3/s");
+      const A     = Math.PI * (D_m / 2) ** 2;
+      const V_ms  = Q_m3s / A;
+      elements.velocity.value = fromSIUnit(V_ms, "m/s", elements.velocityUnit.value).toFixed(4);
     }
+    busy = false;
   }
 
-  /**
-   * Convert value from SI units to target unit
-   */
-  function fromSI(value, toUnit, type) {
-    const siUnits = { length: "m", flow: "m^3/s", velocity: "m/s" };
-    try {
-      return convertUnit(siUnits[type], toUnit, value);
-    } catch {
-      return value;
+  // -- Q = V·A (diameter + velocity → flow) --
+  function calcFlow() {
+    if (busy) return; busy = true;
+    const D = parseFloat(elements.diameter.value);
+    const V = parseFloat(elements.velocity.value);
+    if (Number.isFinite(D) && Number.isFinite(V) && D > 0) {
+      const D_m   = toSIUnit(D, elements.diameterUnit.value,  "m");
+      const V_ms  = toSIUnit(V, elements.velocityUnit.value,  "m/s");
+      const A     = Math.PI * (D_m / 2) ** 2;
+      const Q_m3s = V_ms * A;
+      elements.flow.value = fromSIUnit(Q_m3s, "m^3/s", elements.flowUnit.value).toFixed(4);
     }
+    busy = false;
   }
 
-  /**
-   * Calculate velocity from diameter and flow
-   * V = Q / A, where A = π(D/2)²
-   */
-  function updateVelocity() {
-    if (isUpdating) return;
-    isUpdating = true;
-
-    const D_val = parseFloat(elements.diameter.value);
-    const Q_val = parseFloat(elements.flow.value);
-
-    if (Number.isFinite(D_val) && Number.isFinite(Q_val) && D_val > 0) {
-      const D_m = toSI(D_val, elements.diameterUnit.value, "length");
-      const Q_m3s = toSI(Q_val, elements.flowUnit.value, "flow");
-      const area_m2 = Math.PI * Math.pow(D_m / 2, 2);
-      const V_m_s = Q_m3s / area_m2;
-      elements.velocity.value = fromSI(V_m_s, elements.velocityUnit.value, "velocity").toFixed(4);
+  // Unit-change handlers: re-display the stored quantity in the new unit, then recalculate
+  function onDiameterUnitChange() {
+    const old = elements.diameterUnit.dataset.old;
+    const val = parseFloat(elements.diameter.value);
+    if (Number.isFinite(val)) {
+      elements.diameter.value = convertUnit(old, elements.diameterUnit.value, val).toFixed(4);
     }
-
-    isUpdating = false;
+    elements.diameterUnit.dataset.old = elements.diameterUnit.value;
+    calcVelocity();
   }
 
-  /**
-   * Calculate diameter from velocity and flow
-   * D = 2√(Q / (πV))
-   */
-  function updateDiameter() {
-    if (isUpdating) return;
-    isUpdating = true;
-
-    const V_val = parseFloat(elements.velocity.value);
-    const Q_val = parseFloat(elements.flow.value);
-
-    if (Number.isFinite(V_val) && Number.isFinite(Q_val) && V_val > 0) {
-      const V_m_s = toSI(V_val, elements.velocityUnit.value, "velocity");
-      const Q_m3s = toSI(Q_val, elements.flowUnit.value, "flow");
-      const area_m2 = Q_m3s / V_m_s;
-      const D_m = 2 * Math.sqrt(area_m2 / Math.PI);
-      elements.diameter.value = fromSI(D_m, elements.diameterUnit.value, "length").toFixed(4);
+  function onFlowUnitChange() {
+    const old = elements.flowUnit.dataset.old;
+    const val = parseFloat(elements.flow.value);
+    if (Number.isFinite(val)) {
+      elements.flow.value = convertUnit(old, elements.flowUnit.value, val).toFixed(4);
     }
-
-    isUpdating = false;
+    elements.flowUnit.dataset.old = elements.flowUnit.value;
+    calcVelocity();
   }
 
-  /**
-   * Calculate flow from diameter and velocity
-   * Q = V × A, where A = π(D/2)²
-   */
-  function updateFlow() {
-    if (isUpdating) return;
-    isUpdating = true;
-
-    const D_val = parseFloat(elements.diameter.value);
-    const V_val = parseFloat(elements.velocity.value);
-
-    if (Number.isFinite(D_val) && Number.isFinite(V_val) && D_val > 0) {
-      const D_m = toSI(D_val, elements.diameterUnit.value, "length");
-      const V_m_s = toSI(V_val, elements.velocityUnit.value, "velocity");
-      const area_m2 = Math.PI * Math.pow(D_m / 2, 2);
-      const Q_m3s = area_m2 * V_m_s;
-      elements.flow.value = fromSI(Q_m3s, elements.flowUnit.value, "flow").toFixed(4);
+  function onVelocityUnitChange() {
+    const old = elements.velocityUnit.dataset.old;
+    const val = parseFloat(elements.velocity.value);
+    if (Number.isFinite(val)) {
+      elements.velocity.value = convertUnit(old, elements.velocityUnit.value, val).toFixed(4);
     }
-
-    isUpdating = false;
+    elements.velocityUnit.dataset.old = elements.velocityUnit.value;
+    calcVelocity();
   }
 
-  /**
-   * Handle diameter unit change
-   */
-  function handleDiameterUnitChange() {
-    const oldUnit = elements.diameterUnit.dataset.oldUnit || elements.diameterUnit.value;
-    const value = parseFloat(elements.diameter.value);
-    
-    if (Number.isFinite(value)) {
-      const value_m = toSI(value, oldUnit, "length");
-      elements.diameter.value = fromSI(value_m, elements.diameterUnit.value, "length").toFixed(4);
-      updateVelocity();
-    }
-    
-    elements.diameterUnit.dataset.oldUnit = elements.diameterUnit.value;
-  }
+  // Diameter or flow edited → recompute velocity
+  elements.diameter.addEventListener("input", calcVelocity);
+  elements.flow.addEventListener("input",     calcVelocity);
+  // Velocity edited → recompute flow (diameter is fixed geometry)
+  elements.velocity.addEventListener("input", calcFlow);
 
-  /**
-   * Handle flow unit change
-   */
-  function handleFlowUnitChange() {
-    const oldUnit = elements.flowUnit.dataset.oldUnit || elements.flowUnit.value;
-    const value = parseFloat(elements.flow.value);
-    
-    if (Number.isFinite(value)) {
-      const value_m3s = toSI(value, oldUnit, "flow");
-      elements.flow.value = fromSI(value_m3s, elements.flowUnit.value, "flow").toFixed(4);
-      updateVelocity();
-    }
-    
-    elements.flowUnit.dataset.oldUnit = elements.flowUnit.value;
-  }
+  elements.diameterUnit.addEventListener("change", onDiameterUnitChange);
+  elements.flowUnit.addEventListener("change",     onFlowUnitChange);
+  elements.velocityUnit.addEventListener("change", onVelocityUnitChange);
 
-  /**
-   * Handle velocity unit change
-   */
-  function handleVelocityUnitChange() {
-    const oldUnit = elements.velocityUnit.dataset.oldUnit || elements.velocityUnit.value;
-    const value = parseFloat(elements.velocity.value);
-    
-    if (Number.isFinite(value)) {
-      const value_m_s = toSI(value, oldUnit, "velocity");
-      elements.velocity.value = fromSI(value_m_s, elements.velocityUnit.value, "velocity").toFixed(4);
-      updateDiameter();
-    }
-    
-    elements.velocityUnit.dataset.oldUnit = elements.velocityUnit.value;
-  }
-
-  // Event listeners for value inputs
-  elements.diameter.addEventListener("input", updateVelocity);
-  elements.flow.addEventListener("input", updateVelocity);
-  elements.velocity.addEventListener("input", updateDiameter);
-
-  // Event listeners for unit changes
-  elements.diameterUnit.addEventListener("change", handleDiameterUnitChange);
-  elements.flowUnit.addEventListener("change", handleFlowUnitChange);
-  elements.velocityUnit.addEventListener("change", handleVelocityUnitChange);
-
-  // Initialize
-  updateVelocity();
+  calcVelocity(); // Initial calculation
 }
 
 // ========== CIRCLE AREA CALCULATOR ==========
+// Solves A = π(D/2)²  ↔  D = 2√(A/π)
 
 /**
- * Initialize the circle area calculator
- * Calculates: A = π(D/2)²
+ * Initialize the circle area calculator.
+ * Computes A = π(D/2)²  (bidirectional)
  */
 function initializeCircleAreaCalculator() {
   const elements = {
-    diameter: document.getElementById("circleDiameter"),
-    area: document.getElementById("circleArea"),
+    diameter:     document.getElementById("circleDiameter"),
+    area:         document.getElementById("circleArea"),
     diameterUnit: document.getElementById("circleDiameterUnit"),
-    areaUnit: document.getElementById("circleAreaUnit")
+    areaUnit:     document.getElementById("circleAreaUnit")
   };
 
-  // Check if all elements exist
-  if (!Object.values(elements).every(el => el)) {
-    console.warn("Circle area calculator elements not found");
+  if (!Object.values(elements).every(Boolean)) {
+    console.warn("Circle area calculator: missing DOM elements");
     return;
   }
 
-  // Initialize oldUnit storage
-  elements.diameterUnit.dataset.oldUnit = elements.diameterUnit.value;
-  elements.areaUnit.dataset.oldUnit = elements.areaUnit.value;
+  // Populate unit dropdowns from unit_converter.js data
+  populateUnitSelect(elements.diameterUnit, "length", "in");
+  populateUnitSelect(elements.areaUnit,     "area",   "in^2");
 
-  /**
-   * Calculate area from diameter
-   * A = π(D/2)²
-   */
-  function updateArea() {
-    const D_val = parseFloat(elements.diameter.value);
-    if (!Number.isFinite(D_val)) return;
+  elements.diameterUnit.dataset.old = elements.diameterUnit.value;
+  elements.areaUnit.dataset.old     = elements.areaUnit.value;
 
-    try {
-      // Convert diameter to meters
-      const D_m = convertUnit(elements.diameterUnit.value, "m", D_val);
-      
-      // Calculate area in m²
-      const A_m2 = Math.PI * Math.pow(D_m / 2, 2);
-      
-      // Convert to current area unit
-      elements.area.value = convertUnit("m^2", elements.areaUnit.value, A_m2).toFixed(6);
-    } catch (error) {
-      console.error("Area calculation error:", error.message);
-    }
+  // -- A = π(D/2)² --
+  function calcArea() {
+    const D = parseFloat(elements.diameter.value);
+    if (!Number.isFinite(D) || D < 0) return;
+    const D_m  = toSIUnit(D, elements.diameterUnit.value, "m");
+    const A_m2 = Math.PI * (D_m / 2) ** 2;
+    elements.area.value = fromSIUnit(A_m2, "m^2", elements.areaUnit.value).toFixed(6);
   }
 
-  /**
-   * Calculate diameter from area
-   * D = 2√(A/π)
-   */
-  function updateDiameter() {
-    const A_val = parseFloat(elements.area.value);
-    if (!Number.isFinite(A_val)) return;
-
-    try {
-      // Convert area to m²
-      const A_m2 = convertUnit(elements.areaUnit.value, "m^2", A_val);
-      
-      // Calculate diameter in meters
-      const D_m = 2 * Math.sqrt(A_m2 / Math.PI);
-      
-      // Convert to current diameter unit
-      elements.diameter.value = convertUnit("m", elements.diameterUnit.value, D_m).toFixed(6);
-    } catch (error) {
-      console.error("Diameter calculation error:", error.message);
-    }
+  // -- D = 2√(A/π) --
+  function calcDiameter() {
+    const A = parseFloat(elements.area.value);
+    if (!Number.isFinite(A) || A < 0) return;
+    const A_m2 = toSIUnit(A, elements.areaUnit.value, "m^2");
+    const D_m  = 2 * Math.sqrt(A_m2 / Math.PI);
+    elements.diameter.value = fromSIUnit(D_m, "m", elements.diameterUnit.value).toFixed(6);
   }
 
-  /**
-   * Handle diameter unit change
-   */
-  function handleDiameterUnitChange() {
-    const oldUnit = elements.diameterUnit.dataset.oldUnit || elements.diameterUnit.value;
-    const value = parseFloat(elements.diameter.value);
-    
-    if (Number.isFinite(value)) {
-      try {
-        // Convert diameter from old unit to new unit
-        const D_m = convertUnit(oldUnit, "m", value);
-        const D_new = convertUnit("m", elements.diameterUnit.value, D_m);
-        elements.diameter.value = D_new.toFixed(6);
-        
-        // Update area to match new diameter
-        updateArea();
-      } catch (error) {
-        console.error("Diameter unit change error:", error.message);
-      }
+  function onDiameterUnitChange() {
+    const old = elements.diameterUnit.dataset.old;
+    const val = parseFloat(elements.diameter.value);
+    if (Number.isFinite(val)) {
+      elements.diameter.value = convertUnit(old, elements.diameterUnit.value, val).toFixed(6);
     }
-    
-    elements.diameterUnit.dataset.oldUnit = elements.diameterUnit.value;
+    elements.diameterUnit.dataset.old = elements.diameterUnit.value;
+    calcArea();
   }
 
-  /**
-   * Handle area unit change
-   */
-  function handleAreaUnitChange() {
-    const oldUnit = elements.areaUnit.dataset.oldUnit || elements.areaUnit.value;
-    const value = parseFloat(elements.area.value);
-    
-    if (Number.isFinite(value)) {
-      try {
-        // Convert area from old unit to new unit
-        const A_m2 = convertUnit(oldUnit, "m^2", value);
-        const A_new = convertUnit("m^2", elements.areaUnit.value, A_m2);
-        elements.area.value = A_new.toFixed(6);
-        
-        // Update diameter to match new area
-        updateDiameter();
-      } catch (error) {
-        console.error("Area unit change error:", error.message);
-      }
+  function onAreaUnitChange() {
+    const old = elements.areaUnit.dataset.old;
+    const val = parseFloat(elements.area.value);
+    if (Number.isFinite(val)) {
+      elements.area.value = convertUnit(old, elements.areaUnit.value, val).toFixed(6);
     }
-    
-    elements.areaUnit.dataset.oldUnit = elements.areaUnit.value;
+    elements.areaUnit.dataset.old = elements.areaUnit.value;
+    calcDiameter();
   }
 
-  // Event listeners
-  elements.diameter.addEventListener("input", updateArea);
-  elements.area.addEventListener("input", updateDiameter);
-  elements.diameterUnit.addEventListener("change", handleDiameterUnitChange);
-  elements.areaUnit.addEventListener("change", handleAreaUnitChange);
+  elements.diameter.addEventListener("input", calcArea);
+  elements.area.addEventListener("input",     calcDiameter);
+  elements.diameterUnit.addEventListener("change", onDiameterUnitChange);
+  elements.areaUnit.addEventListener("change",     onAreaUnitChange);
 
-  // Initialize
-  updateArea();
+  calcArea(); // Initial calculation
 }
 
 // ========== REYNOLDS NUMBER CALCULATOR ==========
+// Re = ρ·V·D / μ
+// Re < 2300        → Laminar
+// 2300 ≤ Re ≤ 4000 → Transitional
+// Re > 4000        → Turbulent
 
 /**
- * Initialize Reynolds number calculator
- * Re = (ρVD) / μ
+ * Initialize the Reynolds number calculator.
+ * Re = ρVD / μ, with laminar / transitional / turbulent classification.
  */
 function initializeReynoldsCalculator() {
   const elements = {
-    density: document.getElementById("reDensity"),
-    velocity: document.getElementById("reVelocity"),
-    diameter: document.getElementById("reDiameter"),
-    dynVisc: document.getElementById("reDynVisc"),
-    reynolds: document.getElementById("reValue"),
+    density:     document.getElementById("reDensity"),
+    velocity:    document.getElementById("reVelocity"),
+    diameter:    document.getElementById("reDiameter"),
+    dynVisc:     document.getElementById("reDynVisc"),
+    reynolds:    document.getElementById("reValue"),
+    flowStatus:  document.getElementById("reFlowStatus"),
     densityUnit: document.getElementById("reDensityUnit"),
-    velocityUnit: document.getElementById("reVelocityUnit"),
-    diameterUnit: document.getElementById("reDiameterUnit"),
+    velocityUnit:document.getElementById("reVelocityUnit"),
+    diameterUnit:document.getElementById("reDiameterUnit"),
     dynViscUnit: document.getElementById("reDynViscUnit")
   };
 
-  // Check if all elements exist
-  if (!Object.values(elements).every(el => el)) {
-    console.warn("Reynolds calculator elements not found");
+  if (!Object.values(elements).every(Boolean)) {
+    console.warn("Reynolds calculator: missing DOM elements");
     return;
   }
 
-  /**
-   * Calculate Reynolds number
-   * Re = (ρVD) / μ
-   */
-  function calculateReynolds() {
-    const rho_val = parseFloat(elements.density.value);
-    const V_val = parseFloat(elements.velocity.value);
-    const D_val = parseFloat(elements.diameter.value);
-    const mu_val = parseFloat(elements.dynVisc.value);
+  // Populate unit dropdowns from unit_converter.js data
+  populateUnitSelect(elements.densityUnit,  "density",           "kg/m^3");
+  populateUnitSelect(elements.diameterUnit, "length",            "m");
+  populateUnitSelect(elements.dynViscUnit,  "dynamic viscosity", "Pa*s");
 
-    if (!Number.isFinite(rho_val) || !Number.isFinite(V_val) || 
-        !Number.isFinite(D_val) || !Number.isFinite(mu_val)) {
+  // Velocity: m/s and ft/s only
+  elements.velocityUnit.innerHTML = '';
+  [["m/s","m/s"],["ft/s","ft/s"]].forEach(([label,val]) =>
+    elements.velocityUnit.add(new Option(label, val))
+  );
+
+  // -- Re = ρVD / μ --
+  function calcReynolds() {
+    const rho = parseFloat(elements.density.value);
+    const V   = parseFloat(elements.velocity.value);
+    const D   = parseFloat(elements.diameter.value);
+    const mu  = parseFloat(elements.dynVisc.value);
+
+    if ([rho, V, D, mu].some(v => !Number.isFinite(v))) {
       elements.reynolds.value = "";
+      setFlowStatus("", "");
       return;
     }
 
-    if (mu_val === 0) {
+    if (mu === 0) {
       elements.reynolds.value = "∞";
+      setFlowStatus("Turbulent", "turbulent");
       return;
     }
 
-    try {
-      // Convert all to SI units
-      const rho_SI = convertUnit(elements.densityUnit.value, "kg/m^3", rho_val);
-      const V_SI = convertUnit(elements.velocityUnit.value, "m/s", V_val);
-      const D_SI = convertUnit(elements.diameterUnit.value, "m", D_val);
-      const mu_SI = convertUnit(elements.dynViscUnit.value, "Pa·s", mu_val);
+    // Convert all inputs to SI
+    const rho_SI = toSIUnit(rho, elements.densityUnit.value,  "kg/m^3");
+    const V_SI   = toSIUnit(V,   elements.velocityUnit.value, "m/s");
+    const D_SI   = toSIUnit(D,   elements.diameterUnit.value, "m");
+    const mu_SI  = toSIUnit(mu,  elements.dynViscUnit.value,  "Pa*s");
 
-      // Calculate Reynolds number (dimensionless)
-      const Re = (rho_SI * V_SI * D_SI) / mu_SI;
-      
-      elements.reynolds.value = Re.toFixed(0);
-    } catch (error) {
-      console.error("Reynolds calculation error:", error.message);
-      elements.reynolds.value = "Error";
+    const Re = (rho_SI * V_SI * D_SI) / mu_SI;
+    elements.reynolds.value = Re.toFixed(0);
+
+    // Flow regime classification
+    if (Re < 2300) {
+      setFlowStatus("Laminar", "laminar");
+    } else if (Re <= 4000) {
+      setFlowStatus("Transitional", "transitional");
+    } else {
+      setFlowStatus("Turbulent", "turbulent");
     }
   }
 
-  // Event listeners
-  [elements.density, elements.velocity, elements.diameter, elements.dynVisc].forEach(el => {
-    el.addEventListener("input", calculateReynolds);
-  });
+  /**
+   * Update the flow-status badge text and CSS class.
+   * @param {string} text
+   * @param {'laminar'|'transitional'|'turbulent'|''} regime
+   */
+  function setFlowStatus(text, regime) {
+    elements.flowStatus.textContent = text;
+    elements.flowStatus.className   = "re-flow-status " + regime;
+  }
 
-  [elements.densityUnit, elements.velocityUnit, elements.diameterUnit, elements.dynViscUnit].forEach(el => {
-    el.addEventListener("change", calculateReynolds);
-  });
+  [elements.density, elements.velocity, elements.diameter, elements.dynVisc].forEach(e =>
+    e.addEventListener("input", calcReynolds)
+  );
+  [elements.densityUnit, elements.velocityUnit, elements.diameterUnit, elements.dynViscUnit].forEach(e =>
+    e.addEventListener("change", calcReynolds)
+  );
 
-  // Initialize
-  calculateReynolds();
+  calcReynolds(); // Initial calculation
 }
 
 // ========== INITIALIZATION ==========
 
-// Wait for DOM and convertUnit to be available
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initializeCalculators);
-} else {
-  initializeCalculators();
+/**
+ * Bootstrap all calculators once the DOM is ready and unit_converter.js
+ * functions are available.
+ */
+function initializeCalculators() {
+  if (typeof convertUnit === "undefined" || typeof getAvailableUnits === "undefined") {
+    // Retry after a short delay in case scripts loaded out of order
+    setTimeout(initializeCalculators, 100);
+    return;
+  }
+  initializePipeVelocityCalculator();
+  initializeCircleAreaCalculator();
+  initializeReynoldsCalculator();
 }
 
-function initializeCalculators() {
-  // Wait a bit for convertUnit to be loaded from unit_converter.js
-  setTimeout(() => {
-    if (typeof convertUnit === 'undefined') {
-      console.error('convertUnit function not found. Make sure unit_converter.js is loaded first.');
-      return;
-    }
-
-    initializePipeVelocityCalculator();
-    initializeCircleAreaCalculator();
-    initializeReynoldsCalculator();
-  }, 100);
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initializeCalculators);
+} else {
+  initializeCalculators();
 }
 
 // ========== BROWSER EXPORTS ==========
 if (typeof window !== "undefined") {
   window.initializePipeVelocityCalculator = initializePipeVelocityCalculator;
-  window.initializeCircleAreaCalculator = initializeCircleAreaCalculator;
-  window.initializeReynoldsCalculator = initializeReynoldsCalculator;
+  window.initializeCircleAreaCalculator   = initializeCircleAreaCalculator;
+  window.initializeReynoldsCalculator     = initializeReynoldsCalculator;
 }
