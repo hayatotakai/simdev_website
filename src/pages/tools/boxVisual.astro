@@ -1,0 +1,983 @@
+---
+---
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>3D Tank Visualizer - Realistic Oil Volume</title>
+</head>
+
+<main class="page">
+  <div id="input-container">
+    <label>
+      Tank Width:
+      <input type="number" id="tank-width-input" value="5" min="0.1" step="0.1" />
+      <select id="tank-width-unit"></select>
+    </label>
+    <label>
+      Tank Height:
+      <input type="number" id="tank-height-input" value="5" min="0.1" step="0.1" />
+      <select id="tank-height-unit"></select>
+    </label>
+    <label>
+      Tank Length:
+      <input type="number" id="tank-length-input" value="5" min="0.1" step="0.1" />
+      <select id="tank-length-unit"></select>
+    </label>
+    <label>
+      Oil Volume:
+      <input type="number" id="oil-volume-input" min="0" step="0.1" />
+      <select id="oil-volume-unit"></select>
+    </label>
+    <label>
+      Tank Volume:
+      <input type="text" id="tank-volume-output" readonly />
+    </label>
+
+    <label>
+      Tilt Along Width (°):
+      <input type="number" id="tilt-width-input" value="0" step="1" />
+    </label>
+    <label>
+      Tilt Along Length (°):
+      <input type="number" id="tilt-length-input" value="0" step="1" />
+    </label>
+
+    <label>
+      Inlet Diameter:
+      <input type="number" id="inlet-diameter-input" value="1" min="0" step="0.1" />
+    </label>
+    <label>
+      Inlet Height:
+      <input type="number" id="inlet-height-input" value="2" min="0" step="0.1" />
+    </label>
+    <label>
+      Inlet Offset:
+      <input type="number" id="inlet-offset-input" value="0" step="0.1" />
+      <select id="inlet-unit"></select>
+    </label>
+
+    <label>
+      Outlet Diameter:
+      <input type="number" id="outlet-diameter-input" value="1" min="0" step="0.1" />
+    </label>
+    <label>
+      Outlet Height:
+      <input type="number" id="outlet-height-input" value="2" min="0" step="0.1" />
+    </label>
+    <label>
+      Outlet Offset:
+      <input type="number" id="outlet-offset-input" value="0" step="0.1" />
+      <select id="outlet-unit"></select>
+    </label>
+    <button id="swap-width-length-button" type="button">Swap Width/Length</button>
+    <button id="update-tank-button" type="button">Update Tank</button>
+  </div>
+  <div id="canvas-container" aria-label="3D tank canvas"></div>
+</main>
+
+<style>
+  :global(body) {
+    margin: 0;
+    background-color: white;
+  }
+
+  .page {
+    font-family: Arial, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+  }
+
+  #input-container {
+    margin: 20px;
+  }
+
+  input {
+    margin: 5px;
+    padding: 5px;
+    width: 100px;
+  }
+
+  select {
+    margin: 5px 10px 5px 0;
+    padding: 5px;
+  }
+
+  button {
+    padding: 10px 20px;
+    margin: 10px;
+    cursor: pointer;
+  }
+
+  #canvas-container {
+    width: min(1200px, 90vw);
+    height: min(70vh, 700px);
+    border: 1px solid #ccc;
+    border-radius: 10px;
+    background: radial-gradient(circle at 35% 25%, #ffffff 0%, #f4f6f8 45%, #e9edf2 100%);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+  }
+</style>
+
+<!-- Three.js library -->
+<script is:inline src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<!-- OrbitControls compatible with that Three.js version -->
+<script is:inline src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<!-- Unit conversion helpers -->
+<script is:inline src="/scripts/unit_converter.js"></script>
+
+<script is:inline>
+  (() => {
+    const container = document.getElementById("canvas-container");
+    const tankWidthInput = document.getElementById("tank-width-input");
+    const tankHeightInput = document.getElementById("tank-height-input");
+    const tankLengthInput = document.getElementById("tank-length-input");
+    const tankWidthUnit = document.getElementById("tank-width-unit");
+    const tankHeightUnit = document.getElementById("tank-height-unit");
+    const tankLengthUnit = document.getElementById("tank-length-unit");
+    const inletDiameterInput = document.getElementById("inlet-diameter-input");
+    const inletHeightInput = document.getElementById("inlet-height-input");
+    const inletOffsetInput = document.getElementById("inlet-offset-input");
+    const inletUnit = document.getElementById("inlet-unit");
+    const outletDiameterInput = document.getElementById("outlet-diameter-input");
+    const outletHeightInput = document.getElementById("outlet-height-input");
+    const outletOffsetInput = document.getElementById("outlet-offset-input");
+    const outletUnit = document.getElementById("outlet-unit");
+    const oilVolumeInput = document.getElementById("oil-volume-input");
+    const oilVolumeUnit = document.getElementById("oil-volume-unit");
+    const tankVolumeOutput = document.getElementById("tank-volume-output");
+    const tiltWidthInput = document.getElementById("tilt-width-input");
+    const tiltLengthInput = document.getElementById("tilt-length-input");
+    const swapWidthLengthButton = document.getElementById("swap-width-length-button");
+    const updateTankButton = document.getElementById("update-tank-button");
+
+    const convertUnitFn = window.convertUnit;
+    const getAvailableUnitsFn = window.getAvailableUnits;
+
+    const lengthUnits = getAvailableUnitsFn ? getAvailableUnitsFn("length") : ["m", "cm", "mm", "in", "ft"];
+    const volumeUnits = getAvailableUnitsFn ? getAvailableUnitsFn("volume") : ["m^3", "L", "mL", "in^3", "ft^3", "gal(US)", "gal(UK)"];
+
+    function fillUnitSelect(selectEl, units, defaultUnit) {
+      units.forEach((unit) => {
+        const option = document.createElement("option");
+        option.value = unit;
+        option.textContent = unit;
+        if (unit === defaultUnit) option.selected = true;
+        selectEl.appendChild(option);
+      });
+    }
+
+    fillUnitSelect(tankWidthUnit, lengthUnits, "m");
+    fillUnitSelect(tankHeightUnit, lengthUnits, "m");
+    fillUnitSelect(tankLengthUnit, lengthUnits, "m");
+    fillUnitSelect(inletUnit, lengthUnits, "m");
+    fillUnitSelect(outletUnit, lengthUnits, "m");
+    fillUnitSelect(oilVolumeUnit, volumeUnits, "m^3");
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0xf2f5f8);
+
+    const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 5000);
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.outputEncoding = THREE.sRGBEncoding;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.05;
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    container.appendChild(renderer.domElement);
+
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.1;
+    controls.screenSpacePanning = false;
+    controls.minDistance = 2;
+    controls.maxDistance = 250;
+
+    // Lights (soft studio-like setup)
+    const hemiLight = new THREE.HemisphereLight(0xffffff, 0xc8d1db, 0.65);
+    scene.add(hemiLight);
+
+    const keyLight = new THREE.DirectionalLight(0xffffff, 0.85);
+    keyLight.position.set(12, 18, 10);
+    keyLight.castShadow = true;
+    keyLight.shadow.mapSize.width = 2048;
+    keyLight.shadow.mapSize.height = 2048;
+    keyLight.shadow.camera.left = -40;
+    keyLight.shadow.camera.right = 40;
+    keyLight.shadow.camera.top = 40;
+    keyLight.shadow.camera.bottom = -40;
+    keyLight.shadow.camera.near = 1;
+    keyLight.shadow.camera.far = 120;
+    keyLight.shadow.bias = -0.0003;
+    keyLight.shadow.normalBias = 0.01;
+    scene.add(keyLight);
+
+    const rimLight = new THREE.DirectionalLight(0xdce6ff, 0.35);
+    rimLight.position.set(-14, 10, -12);
+    scene.add(rimLight);
+
+    // Ground plane to catch shadows
+    const floor = new THREE.Mesh(
+      new THREE.PlaneGeometry(200, 200),
+      new THREE.ShadowMaterial({ opacity: 0.2 })
+    );
+    floor.rotation.x = -Math.PI / 2;
+    floor.position.y = -8;
+    floor.receiveShadow = true;
+    scene.add(floor);
+
+    const tankGroup = new THREE.Group();
+    scene.add(tankGroup);
+
+    let tankShellMesh;
+    let oilVolumeMesh;
+    let oilSurfaceMesh;
+    let tankEdgeLines;
+    let inletCylinderMesh;
+    let outletCylinderMesh;
+    let dimensionGroup;
+    let rafId;
+
+    function disposeObject(object3d) {
+      if (!object3d) return;
+      object3d.traverse((child) => {
+        if (child.geometry) child.geometry.dispose();
+        if (Array.isArray(child.material)) {
+          child.material.forEach((material) => {
+            if (material.map) material.map.dispose();
+            material.dispose();
+          });
+        } else if (child.material) {
+          if (child.material.map) child.material.map.dispose();
+          child.material.dispose();
+        }
+      });
+      if (object3d.parent) {
+        object3d.parent.remove(object3d);
+      } else {
+        scene.remove(object3d);
+      }
+    }
+
+    function clearTankGeometry() {
+      disposeObject(tankShellMesh);
+      disposeObject(oilVolumeMesh);
+      disposeObject(oilSurfaceMesh);
+      disposeObject(tankEdgeLines);
+      disposeObject(inletCylinderMesh);
+      disposeObject(outletCylinderMesh);
+      disposeObject(dimensionGroup);
+      tankShellMesh = undefined;
+      oilVolumeMesh = undefined;
+      oilSurfaceMesh = undefined;
+      tankEdgeLines = undefined;
+      inletCylinderMesh = undefined;
+      outletCylinderMesh = undefined;
+      dimensionGroup = undefined;
+    }
+
+    function formatLengthLabel(valueM, unit) {
+      const converted = convertUnitFn ? convertUnitFn("m", unit, valueM) : valueM;
+      return `${Number(converted.toFixed(3))} ${unit}`;
+    }
+
+    function createTextSprite(text) {
+      const canvas = document.createElement("canvas");
+      canvas.width = 512;
+      canvas.height = 128;
+      const context = canvas.getContext("2d");
+
+      context.fillStyle = "rgba(255,255,255,0.9)";
+      context.fillRect(0, 0, canvas.width, canvas.height);
+      context.strokeStyle = "rgba(30,30,30,0.95)";
+      context.lineWidth = 4;
+      context.strokeRect(2, 2, canvas.width - 4, canvas.height - 4);
+
+      context.fillStyle = "#101010";
+      context.font = "bold 52px Arial";
+      context.textAlign = "center";
+      context.textBaseline = "middle";
+      context.fillText(text, canvas.width / 2, canvas.height / 2);
+
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.minFilter = THREE.LinearFilter;
+      texture.generateMipmaps = false;
+
+      const material = new THREE.SpriteMaterial({
+        map: texture,
+        transparent: true,
+        depthTest: false,
+      });
+      const sprite = new THREE.Sprite(material);
+      sprite.renderOrder = 1000;
+      return sprite;
+    }
+
+    function addDimensionLine(group, start, end, fromRefStart, fromRefEnd, labelText, capDirection, labelScale) {
+      const dimMaterial = new THREE.LineBasicMaterial({
+        color: 0x1f2933,
+        transparent: true,
+        opacity: 0.95,
+        depthTest: false,
+      });
+
+      const dimGeometry = new THREE.BufferGeometry().setFromPoints([start, end]);
+      const dimLine = new THREE.Line(dimGeometry, dimMaterial);
+      dimLine.renderOrder = 900;
+      group.add(dimLine);
+
+      const witnessGeometryA = new THREE.BufferGeometry().setFromPoints([fromRefStart, start]);
+      const witnessA = new THREE.Line(witnessGeometryA, dimMaterial.clone());
+      witnessA.renderOrder = 900;
+      group.add(witnessA);
+
+      const witnessGeometryB = new THREE.BufferGeometry().setFromPoints([fromRefEnd, end]);
+      const witnessB = new THREE.Line(witnessGeometryB, dimMaterial.clone());
+      witnessB.renderOrder = 900;
+      group.add(witnessB);
+
+      const capSize = labelScale * 0.22;
+      const capStartGeom = new THREE.BufferGeometry().setFromPoints([
+        start.clone().addScaledVector(capDirection, -capSize),
+        start.clone().addScaledVector(capDirection, capSize),
+      ]);
+      const capStart = new THREE.Line(capStartGeom, dimMaterial.clone());
+      capStart.renderOrder = 900;
+      group.add(capStart);
+
+      const capEndGeom = new THREE.BufferGeometry().setFromPoints([
+        end.clone().addScaledVector(capDirection, -capSize),
+        end.clone().addScaledVector(capDirection, capSize),
+      ]);
+      const capEnd = new THREE.Line(capEndGeom, dimMaterial.clone());
+      capEnd.renderOrder = 900;
+      group.add(capEnd);
+
+      const label = createTextSprite(labelText);
+      label.position.copy(start).lerp(end, 0.5);
+      label.scale.set(labelScale * 1.6, labelScale * 0.45, 1);
+      group.add(label);
+    }
+
+    function addEngineeringDimensions(tankWidth, tankHeight, tankLength, oilHeight) {
+      dimensionGroup = new THREE.Group();
+      tankGroup.add(dimensionGroup);
+
+      const halfW = tankWidth / 2;
+      const halfH = tankHeight / 2;
+      const halfL = tankLength / 2;
+      const maxDim = Math.max(tankWidth, tankHeight, tankLength, 1);
+      const margin = Math.max(maxDim * 0.08, 0.08);
+      const labelScale = Math.max(maxDim * 0.12, 0.28);
+
+      // Width dimension (X axis)
+      {
+        const refA = new THREE.Vector3(-halfW, -halfH, halfL);
+        const refB = new THREE.Vector3(halfW, -halfH, halfL);
+        const offset = new THREE.Vector3(0, -margin, margin);
+        const start = refA.clone().add(offset);
+        const end = refB.clone().add(offset);
+        addDimensionLine(
+          dimensionGroup,
+          start,
+          end,
+          refA,
+          refB,
+          `W: ${formatLengthLabel(tankWidth, tankWidthUnit.value)}`,
+          new THREE.Vector3(0, 1, 0),
+          labelScale
+        );
+      }
+
+      // Length dimension (Z axis)
+      {
+        const refA = new THREE.Vector3(halfW, -halfH, -halfL);
+        const refB = new THREE.Vector3(halfW, -halfH, halfL);
+        const offset = new THREE.Vector3(margin, -margin, 0);
+        const start = refA.clone().add(offset);
+        const end = refB.clone().add(offset);
+        addDimensionLine(
+          dimensionGroup,
+          start,
+          end,
+          refA,
+          refB,
+          `L: ${formatLengthLabel(tankLength, tankLengthUnit.value)}`,
+          new THREE.Vector3(0, 1, 0),
+          labelScale
+        );
+      }
+
+      // Tank height dimension (Y axis)
+      {
+        const refA = new THREE.Vector3(-halfW, -halfH, halfL);
+        const refB = new THREE.Vector3(-halfW, halfH, halfL);
+        const offset = new THREE.Vector3(-margin, 0, margin);
+        const start = refA.clone().add(offset);
+        const end = refB.clone().add(offset);
+        addDimensionLine(
+          dimensionGroup,
+          start,
+          end,
+          refA,
+          refB,
+          `H: ${formatLengthLabel(tankHeight, tankHeightUnit.value)}`,
+          new THREE.Vector3(1, 0, 0),
+          labelScale
+        );
+      }
+
+      // Oil height dimension (Y axis)
+      {
+        const clampedOilHeight = Math.max(0, Math.min(tankHeight, oilHeight));
+        const refA = new THREE.Vector3(halfW, -halfH, halfL);
+        const refB = new THREE.Vector3(halfW, -halfH + clampedOilHeight, halfL);
+        const offset = new THREE.Vector3(margin * 1.35, 0, margin * 0.85);
+        const start = refA.clone().add(offset);
+        const end = refB.clone().add(offset);
+        addDimensionLine(
+          dimensionGroup,
+          start,
+          end,
+          refA,
+          refB,
+          `Oil H: ${formatLengthLabel(clampedOilHeight, tankHeightUnit.value)}`,
+          new THREE.Vector3(1, 0, 0),
+          labelScale
+        );
+      }
+    }
+
+    function frameScene() {
+      const box = new THREE.Box3().setFromObject(tankGroup);
+      const center = box.getCenter(new THREE.Vector3());
+      const size = box.getSize(new THREE.Vector3());
+      const maxDim = Math.max(size.x, size.y, size.z, 1);
+      const distance = maxDim * 1.6;
+
+      camera.position.set(distance * 1.05, distance * 0.8, distance * 1.1);
+      camera.lookAt(center);
+      controls.target.copy(center);
+      controls.update();
+    }
+
+    // --- Tilted oil surface computation ---
+
+    function oilHeightAtPoint(x, z, h0, slopeW, slopeL, tankH) {
+      return Math.max(0, Math.min(tankH, h0 + slopeW * x + slopeL * z));
+    }
+
+    function computeTiltedVolume(W, H, L, h0, sW, sL) {
+      // Fast path: no tilt
+      if (Math.abs(sW) < 1e-10 && Math.abs(sL) < 1e-10) {
+        return Math.max(0, Math.min(H, h0)) * W * L;
+      }
+      const steps = 40;
+      const dx = W / steps;
+      const dz = L / steps;
+      let vol = 0;
+      for (let i = 0; i < steps; i++) {
+        const x = -W / 2 + (i + 0.5) * dx;
+        for (let j = 0; j < steps; j++) {
+          const z = -L / 2 + (j + 0.5) * dz;
+          vol += oilHeightAtPoint(x, z, h0, sW, sL, H) * dx * dz;
+        }
+      }
+      return vol;
+    }
+
+    function solveCenterHeight(W, H, L, targetVol, sW, sL) {
+      const maxVol = W * H * L;
+      const target = Math.max(0, Math.min(maxVol, targetVol));
+      if (target <= 0) return 0;
+      if (target >= maxVol) return H;
+      // Fast path: no tilt
+      if (Math.abs(sW) < 1e-10 && Math.abs(sL) < 1e-10) {
+        return target / (W * L);
+      }
+      const extra = Math.abs(sW) * W / 2 + Math.abs(sL) * L / 2;
+      let lo = -extra;
+      let hi = H + extra;
+      for (let iter = 0; iter < 60; iter++) {
+        const mid = (lo + hi) / 2;
+        if (computeTiltedVolume(W, H, L, mid, sW, sL) < target) lo = mid;
+        else hi = mid;
+      }
+      return (lo + hi) / 2;
+    }
+
+    function buildTiltedOilGeometry(W, H, L, h0, sW, sL) {
+      const res = 24;
+      const inset = 0.97;
+      const iW = W * inset;
+      const iL = L * inset;
+      const botY = -H / 2;
+
+      function getH(x, z) {
+        return Math.max(0, Math.min(H, h0 + sW * x + sL * z));
+      }
+
+      const verts = [];
+      const idx = [];
+      const stride = res + 1;
+
+      // === Top surface ===
+      for (let iz = 0; iz <= res; iz++) {
+        for (let ix = 0; ix <= res; ix++) {
+          const x = -iW / 2 + (ix / res) * iW;
+          const z = -iL / 2 + (iz / res) * iL;
+          verts.push(x, botY + getH(x, z), z);
+        }
+      }
+      for (let iz = 0; iz < res; iz++) {
+        for (let ix = 0; ix < res; ix++) {
+          const a = iz * stride + ix;
+          const b = a + 1;
+          const c = a + stride;
+          const d = c + 1;
+          idx.push(a, b, c);
+          idx.push(b, d, c);
+        }
+      }
+
+      // === Bottom surface ===
+      const bOff = verts.length / 3;
+      for (let iz = 0; iz <= res; iz++) {
+        for (let ix = 0; ix <= res; ix++) {
+          const x = -iW / 2 + (ix / res) * iW;
+          const z = -iL / 2 + (iz / res) * iL;
+          verts.push(x, botY, z);
+        }
+      }
+      for (let iz = 0; iz < res; iz++) {
+        for (let ix = 0; ix < res; ix++) {
+          const a = bOff + iz * stride + ix;
+          const b = a + 1;
+          const c = a + stride;
+          const d = c + 1;
+          idx.push(a, c, b);
+          idx.push(b, c, d);
+        }
+      }
+
+      // === Front wall (z = +iL/2) ===
+      let off = verts.length / 3;
+      for (let ix = 0; ix <= res; ix++) {
+        const x = -iW / 2 + (ix / res) * iW;
+        verts.push(x, botY + getH(x, iL / 2), iL / 2);
+        verts.push(x, botY, iL / 2);
+      }
+      for (let ix = 0; ix < res; ix++) {
+        const a = off + ix * 2;
+        idx.push(a, a + 2, a + 1);
+        idx.push(a + 1, a + 2, a + 3);
+      }
+
+      // === Back wall (z = -iL/2) ===
+      off = verts.length / 3;
+      for (let ix = 0; ix <= res; ix++) {
+        const x = -iW / 2 + (ix / res) * iW;
+        verts.push(x, botY + getH(x, -iL / 2), -iL / 2);
+        verts.push(x, botY, -iL / 2);
+      }
+      for (let ix = 0; ix < res; ix++) {
+        const a = off + ix * 2;
+        idx.push(a, a + 1, a + 2);
+        idx.push(a + 1, a + 3, a + 2);
+      }
+
+      // === Right wall (x = +iW/2) ===
+      off = verts.length / 3;
+      for (let iz = 0; iz <= res; iz++) {
+        const z = -iL / 2 + (iz / res) * iL;
+        verts.push(iW / 2, botY + getH(iW / 2, z), z);
+        verts.push(iW / 2, botY, z);
+      }
+      for (let iz = 0; iz < res; iz++) {
+        const a = off + iz * 2;
+        idx.push(a, a + 1, a + 2);
+        idx.push(a + 1, a + 3, a + 2);
+      }
+
+      // === Left wall (x = -iW/2) ===
+      off = verts.length / 3;
+      for (let iz = 0; iz <= res; iz++) {
+        const z = -iL / 2 + (iz / res) * iL;
+        verts.push(-iW / 2, botY + getH(-iW / 2, z), z);
+        verts.push(-iW / 2, botY, z);
+      }
+      for (let iz = 0; iz < res; iz++) {
+        const a = off + iz * 2;
+        idx.push(a, a + 2, a + 1);
+        idx.push(a + 1, a + 2, a + 3);
+      }
+
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3));
+      geo.setIndex(idx);
+      geo.computeVertexNormals();
+      return geo;
+    }
+
+    function buildTiltedSurfaceGeometry(W, H, L, h0, sW, sL) {
+      const res = 24;
+      const inset = 0.95;
+      const iW = W * inset;
+      const iL = L * inset;
+      const botY = -H / 2;
+      const verts = [];
+      const idx = [];
+      const stride = res + 1;
+      for (let iz = 0; iz <= res; iz++) {
+        for (let ix = 0; ix <= res; ix++) {
+          const x = -iW / 2 + (ix / res) * iW;
+          const z = -iL / 2 + (iz / res) * iL;
+          const h = Math.max(0, Math.min(H, h0 + sW * x + sL * z));
+          verts.push(x, botY + h + 0.01, z);
+        }
+      }
+      for (let iz = 0; iz < res; iz++) {
+        for (let ix = 0; ix < res; ix++) {
+          const a = iz * stride + ix;
+          idx.push(a, a + 1, a + stride);
+          idx.push(a + 1, a + stride + 1, a + stride);
+        }
+      }
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3));
+      geo.setIndex(idx);
+      geo.computeVertexNormals();
+      return geo;
+    }
+
+    // --- Main geometry creation ---
+
+    function createTankAndOilVolumes(tankWidth, tankHeight, tankLength, oilVolumeM3, tiltWidthDeg, tiltLengthDeg, inletParams, outletParams) {
+      clearTankGeometry();
+      const tankBottomY = -tankHeight / 2;
+      let floorY = tankBottomY - 0.01;
+
+      const tankGeometry = new THREE.BoxGeometry(tankWidth, tankHeight, tankLength);
+      const tankMaterial = new THREE.MeshPhysicalMaterial({
+        color: 0xbec7d1,
+        transparent: true,
+        opacity: 0.2,
+        depthWrite: false,
+        side: THREE.DoubleSide,
+        roughness: 0.05,
+        metalness: 0,
+        reflectivity: 0.9,
+        clearcoat: 1,
+        clearcoatRoughness: 0.05,
+      });
+      tankShellMesh = new THREE.Mesh(tankGeometry, tankMaterial);
+      tankShellMesh.castShadow = true;
+      tankShellMesh.receiveShadow = true;
+      tankGroup.add(tankShellMesh);
+
+      // Subtle edge lines for tank silhouette
+      const edgeGeometry = new THREE.EdgesGeometry(tankGeometry);
+      tankEdgeLines = new THREE.LineSegments(
+        edgeGeometry,
+        new THREE.LineBasicMaterial({ color: 0x8f99a3, transparent: true, opacity: 0.65 })
+      );
+      tankGroup.add(tankEdgeLines);
+
+      // Compute tilted oil surface
+      const clampedTiltW = Math.max(-89, Math.min(89, tiltWidthDeg));
+      const clampedTiltL = Math.max(-89, Math.min(89, tiltLengthDeg));
+      const slopeW = Math.tan(clampedTiltW * Math.PI / 180);
+      const slopeL = Math.tan(clampedTiltL * Math.PI / 180);
+      const h0 = solveCenterHeight(tankWidth, tankHeight, tankLength, oilVolumeM3, slopeW, slopeL);
+      const centerOilHeight = Math.max(0, Math.min(tankHeight, h0));
+
+      if (oilVolumeM3 > 1e-9) {
+        const oilGeometry = buildTiltedOilGeometry(tankWidth, tankHeight, tankLength, h0, slopeW, slopeL);
+        const oilMaterial = new THREE.MeshPhysicalMaterial({
+          color: 0xc97a17,
+          transparent: true,
+          opacity: 0.6,
+          depthWrite: false,
+          side: THREE.DoubleSide,
+          roughness: 0.22,
+          metalness: 0,
+          clearcoat: 0.35,
+          clearcoatRoughness: 0.2,
+        });
+        oilVolumeMesh = new THREE.Mesh(oilGeometry, oilMaterial);
+        oilVolumeMesh.castShadow = true;
+        oilVolumeMesh.receiveShadow = true;
+        tankGroup.add(oilVolumeMesh);
+
+        // Glossy top oil surface
+        const surfGeo = buildTiltedSurfaceGeometry(tankWidth, tankHeight, tankLength, h0, slopeW, slopeL);
+        const oilSurfaceMaterial = new THREE.MeshPhysicalMaterial({
+          color: 0xe39a30,
+          transparent: true,
+          opacity: 0.45,
+          depthWrite: false,
+          polygonOffset: true,
+          polygonOffsetFactor: -1,
+          polygonOffsetUnits: -1,
+          side: THREE.DoubleSide,
+          roughness: 0.1,
+          metalness: 0,
+        });
+        oilSurfaceMesh = new THREE.Mesh(surfGeo, oilSurfaceMaterial);
+        oilSurfaceMesh.receiveShadow = true;
+        tankGroup.add(oilSurfaceMesh);
+      }
+
+      // Inlet cylinder (mapped from CreateGeometry.java)
+      if (inletParams.height > 0 && inletParams.diameter > 0) {
+        const inletGeometry = new THREE.CylinderGeometry(inletParams.diameter / 2, inletParams.diameter / 2, inletParams.height, 40);
+        const inletMaterial = new THREE.MeshStandardMaterial({
+          color: 0x8f99a3,
+          metalness: 0.15,
+          roughness: 0.4,
+        });
+        inletCylinderMesh = new THREE.Mesh(inletGeometry, inletMaterial);
+        // Compute local oil height at the inlet position
+        const inletOilH = oilHeightAtPoint(tankWidth / 2, -inletParams.offset, h0, slopeW, slopeL, tankHeight);
+        const oilTopAtInlet = tankBottomY + inletOilH;
+        inletCylinderMesh.position.set(tankWidth / 2 - inletParams.height / 2, oilTopAtInlet - inletParams.height / 2, -inletParams.offset);
+        inletCylinderMesh.castShadow = true;
+        inletCylinderMesh.receiveShadow = true;
+        tankGroup.add(inletCylinderMesh);
+      }
+
+      // Outlet cylinder (mapped from CreateGeometry.java)
+      if (outletParams.height > 0 && outletParams.diameter > 0) {
+        const outletGeometry = new THREE.CylinderGeometry(outletParams.diameter / 2, outletParams.diameter / 2, outletParams.height, 40);
+        const outletMaterial = new THREE.MeshPhysicalMaterial({
+          color: 0xc97a17,
+          transparent: true,
+          opacity: 0.6,
+          depthWrite: false,
+          roughness: 0.22,
+          metalness: 0,
+          clearcoat: 0.35,
+          clearcoatRoughness: 0.2,
+        });
+        outletCylinderMesh = new THREE.Mesh(outletGeometry, outletMaterial);
+        const oilBottomY = tankBottomY;
+        const outletCenterY = oilBottomY - outletParams.height / 2;
+        const outletBottomY = outletCenterY - outletParams.height / 2;
+        outletCylinderMesh.position.set(-tankWidth / 2 + outletParams.height / 2, outletCenterY, -outletParams.offset);
+        outletCylinderMesh.castShadow = true;
+        outletCylinderMesh.receiveShadow = true;
+        tankGroup.add(outletCylinderMesh);
+
+        floorY = outletBottomY - 0.01;
+      }
+
+      // Keep floor attached to the outlet bottom (fallback: tank bottom).
+      floor.position.y = floorY;
+
+      addEngineeringDimensions(tankWidth, tankHeight, tankLength, centerOilHeight);
+
+      frameScene();
+    }
+
+    function parsePositiveDimension(input, fallback) {
+      const value = Number.parseFloat(input.value);
+      return Number.isFinite(value) && value > 0 ? value : fallback;
+    }
+
+    function convertToMeters(value, fromUnit) {
+      if (!convertUnitFn || fromUnit === "m") return value;
+      return convertUnitFn(fromUnit, "m", value);
+    }
+
+    function convertFromM3(valueM3, toUnit) {
+      if (!convertUnitFn || toUnit === "m^3") return valueM3;
+      return convertUnitFn("m^3", toUnit, valueM3);
+    }
+
+    function convertToM3(value, fromUnit) {
+      if (!convertUnitFn || fromUnit === "m^3") return value;
+      return convertUnitFn(fromUnit, "m^3", value);
+    }
+
+    function calculateTankVolumeM3(widthM, heightM, lengthM) {
+      return widthM * heightM * lengthM;
+    }
+
+    function setDefaultOilVolumeIfEmpty(tankVolumeM3) {
+      const currentValue = Number.parseFloat(oilVolumeInput.value);
+      if (Number.isFinite(currentValue) && currentValue > 0) {
+        return;
+      }
+
+      const targetUnit = oilVolumeUnit.value;
+      const halfTankInTargetUnit = convertFromM3(tankVolumeM3 / 2, targetUnit);
+      oilVolumeInput.value = String(Number(halfTankInTargetUnit.toFixed(4)));
+    }
+
+    function updateTankVolumeOutput(tankVolumeM3) {
+      const targetUnit = oilVolumeUnit.value;
+      const volumeInTargetUnit = convertFromM3(tankVolumeM3, targetUnit);
+      tankVolumeOutput.value = `${volumeInTargetUnit.toFixed(4)} ${targetUnit}`;
+    }
+
+    function updateTankGeometry() {
+      const tankWidthRaw = parsePositiveDimension(tankWidthInput, 5);
+      const tankHeightRaw = parsePositiveDimension(tankHeightInput, 5);
+      const tankLengthRaw = parsePositiveDimension(tankLengthInput, 5);
+
+      tankWidthInput.value = String(tankWidthRaw);
+      tankHeightInput.value = String(tankHeightRaw);
+      tankLengthInput.value = String(tankLengthRaw);
+
+      const tankWidthM = convertToMeters(tankWidthRaw, tankWidthUnit.value);
+      const tankHeightM = convertToMeters(tankHeightRaw, tankHeightUnit.value);
+      const tankLengthM = convertToMeters(tankLengthRaw, tankLengthUnit.value);
+
+      const inletDiameterRaw = parsePositiveDimension(inletDiameterInput, 1);
+      const inletHeightRaw = parsePositiveDimension(inletHeightInput, 2);
+      const inletOffsetRaw = Number.parseFloat(inletOffsetInput.value);
+      inletDiameterInput.value = String(inletDiameterRaw);
+      inletHeightInput.value = String(inletHeightRaw);
+      inletOffsetInput.value = String(Number.isFinite(inletOffsetRaw) ? inletOffsetRaw : 0);
+
+      const outletDiameterRaw = parsePositiveDimension(outletDiameterInput, 1);
+      const outletHeightRaw = parsePositiveDimension(outletHeightInput, 2);
+      const outletOffsetRaw = Number.parseFloat(outletOffsetInput.value);
+      outletDiameterInput.value = String(outletDiameterRaw);
+      outletHeightInput.value = String(outletHeightRaw);
+      outletOffsetInput.value = String(Number.isFinite(outletOffsetRaw) ? outletOffsetRaw : 0);
+
+      const inletParams = {
+        diameter: convertToMeters(inletDiameterRaw, inletUnit.value),
+        height: convertToMeters(inletHeightRaw, inletUnit.value),
+        offset: convertToMeters(Number.isFinite(inletOffsetRaw) ? inletOffsetRaw : 0, inletUnit.value),
+      };
+
+      const outletParams = {
+        diameter: convertToMeters(outletDiameterRaw, outletUnit.value),
+        height: convertToMeters(outletHeightRaw, outletUnit.value),
+        offset: convertToMeters(Number.isFinite(outletOffsetRaw) ? outletOffsetRaw : 0, outletUnit.value),
+      };
+
+      const tankVolumeM3 = calculateTankVolumeM3(tankWidthM, tankHeightM, tankLengthM);
+      updateTankVolumeOutput(tankVolumeM3);
+      setDefaultOilVolumeIfEmpty(tankVolumeM3);
+
+      const oilVolumeRaw = parsePositiveDimension(oilVolumeInput, tankVolumeM3 / 2);
+      oilVolumeInput.value = String(oilVolumeRaw);
+
+      const oilVolumeM3 = Math.max(0, convertToM3(oilVolumeRaw, oilVolumeUnit.value));
+
+      const tiltW = parseFloat(tiltWidthInput.value) || 0;
+      const tiltL = parseFloat(tiltLengthInput.value) || 0;
+
+      createTankAndOilVolumes(tankWidthM, tankHeightM, tankLengthM, oilVolumeM3, tiltW, tiltL, inletParams, outletParams);
+    }
+
+    function swapWidthAndLength() {
+      const previousWidthValue = tankWidthInput.value;
+      const previousWidthUnit = tankWidthUnit.value;
+
+      tankWidthInput.value = tankLengthInput.value;
+      tankWidthUnit.value = tankLengthUnit.value;
+
+      tankLengthInput.value = previousWidthValue;
+      tankLengthUnit.value = previousWidthUnit;
+
+      updateTankGeometry();
+      saveUrlParameters();
+    }
+
+    function onResize() {
+      const containerWidth = Math.max(container.clientWidth, 1);
+      const containerHeight = Math.max(container.clientHeight, 1);
+      renderer.setSize(containerWidth, containerHeight);
+      camera.aspect = containerWidth / containerHeight;
+      camera.updateProjectionMatrix();
+    }
+
+    function animate() {
+      rafId = requestAnimationFrame(animate);
+      controls.update();
+      renderer.render(scene, camera);
+    }
+
+    // URL Parameter Management
+    function saveUrlParameters() {
+      const params = new URLSearchParams();
+      params.set('tw', tankWidthInput.value);
+      params.set('twu', tankWidthUnit.value);
+      params.set('th', tankHeightInput.value);
+      params.set('thu', tankHeightUnit.value);
+      params.set('tl', tankLengthInput.value);
+      params.set('tlu', tankLengthUnit.value);
+      params.set('ov', oilVolumeInput.value);
+      params.set('ovu', oilVolumeUnit.value);
+      params.set('id', inletDiameterInput.value);
+      params.set('ih', inletHeightInput.value);
+      params.set('io', inletOffsetInput.value);
+      params.set('iu', inletUnit.value);
+      params.set('od', outletDiameterInput.value);
+      params.set('oh', outletHeightInput.value);
+      params.set('oo', outletOffsetInput.value);
+      params.set('ou', outletUnit.value);
+      params.set('tilw', tiltWidthInput.value);
+      params.set('till', tiltLengthInput.value);
+      window.history.replaceState({}, '', `?${params.toString()}`);
+    }
+
+    function loadUrlParameters() {
+      const params = new URLSearchParams(window.location.search);
+      if (params.has('tw')) tankWidthInput.value = params.get('tw');
+      if (params.has('twu')) tankWidthUnit.value = params.get('twu');
+      if (params.has('th')) tankHeightInput.value = params.get('th');
+      if (params.has('thu')) tankHeightUnit.value = params.get('thu');
+      if (params.has('tl')) tankLengthInput.value = params.get('tl');
+      if (params.has('tlu')) tankLengthUnit.value = params.get('tlu');
+      if (params.has('ov')) oilVolumeInput.value = params.get('ov');
+      if (params.has('ovu')) oilVolumeUnit.value = params.get('ovu');
+      if (params.has('id')) inletDiameterInput.value = params.get('id');
+      if (params.has('ih')) inletHeightInput.value = params.get('ih');
+      if (params.has('io')) inletOffsetInput.value = params.get('io');
+      if (params.has('iu')) inletUnit.value = params.get('iu');
+      if (params.has('od')) outletDiameterInput.value = params.get('od');
+      if (params.has('oh')) outletHeightInput.value = params.get('oh');
+      if (params.has('oo')) outletOffsetInput.value = params.get('oo');
+      if (params.has('ou')) outletUnit.value = params.get('ou');
+      if (params.has('tilw')) tiltWidthInput.value = params.get('tilw');
+      if (params.has('till')) tiltLengthInput.value = params.get('till');
+    }
+
+    swapWidthLengthButton.addEventListener("click", swapWidthAndLength);
+    updateTankButton.addEventListener("click", () => {
+      updateTankGeometry();
+      saveUrlParameters();
+    });
+    window.addEventListener("resize", onResize);
+    oilVolumeUnit.addEventListener("change", () => {
+      updateTankGeometry();
+      saveUrlParameters();
+    });
+
+    onResize();
+    loadUrlParameters();
+    updateTankGeometry();
+    animate();
+
+    // Cleanup when leaving route (Astro client-side navigation).
+    window.addEventListener("pagehide", () => {
+      cancelAnimationFrame(rafId);
+      window.removeEventListener("resize", onResize);
+      swapWidthLengthButton.removeEventListener("click", swapWidthAndLength);
+      oilVolumeUnit.removeEventListener("change", updateTankGeometry);
+      updateTankButton.removeEventListener("click", updateTankGeometry);
+      clearTankGeometry();
+      controls.dispose();
+      renderer.dispose();
+    });
+  })();
+</script>

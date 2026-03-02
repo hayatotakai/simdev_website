@@ -3,7 +3,6 @@ const DENSITY_COEFFICIENT = 0.00065;
 const REFERENCE_TEMP_K = 288.15; // 15°C in Kelvin
 const WALTHER_CONSTANT = 0.8;
 const WALTHER_ERROR_THRESHOLD = 5; // percent
-const FLUID_DATA_PATH = "../components/fluid_data.json";
 
 // Configuration
 const DEBUG_MODE = false; // Set to true to enable detailed logging
@@ -21,7 +20,9 @@ async function loadFluidData() {
   loadPromise = (async () => {
     try {
       if (typeof window !== "undefined" && typeof fetch !== "undefined") {
-        // Browser mode
+        // Browser mode - determine path at fetch time to get window.BASE_URL
+        const base = (typeof window !== 'undefined' && window.BASE_URL) || '';
+        const FLUID_DATA_PATH = `${base}/components/fluid_data.json`;
         const response = await fetch(FLUID_DATA_PATH);
         if (!response.ok) {
           throw new Error(`Failed to load fluid data: ${response.statusText}`);

@@ -301,16 +301,18 @@ select {
 .wrapper {
   max-width: 1440px;
   margin-inline: auto;
-  padding: 60px;
+  padding: 120px;
   display: flex;
   flex-direction: column;
   gap: 64px;
 }
 
-.video {
+.wrapper video {
   width: 100%;
   aspect-ratio: 16 / 9;
   overflow: hidden;
+    object-fit: cover;
+
   border-radius: 12px;
 }
 
