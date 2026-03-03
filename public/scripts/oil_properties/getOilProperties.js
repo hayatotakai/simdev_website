@@ -47,7 +47,6 @@ async function loadFluidData() {
       loadPromise = null;
     }
   })();
-  
   return loadPromise;
 }
 

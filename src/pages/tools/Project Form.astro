@@ -1,0 +1,838 @@
+---
+import Layout from '../../layouts/BaseLayout.astro';
+const BASE_PATH = import.meta.env.BASE_URL.replace(/\/$/, '');
+---
+
+<Layout>
+<style>
+  .project-container {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 40px 20px;
+  }
+
+  .project-container h1 {
+    font-size: 1.75rem;
+    color: #1f2328;
+    margin-bottom: 8px;
+  }
+
+  .subtitle {
+    color: #656d76;
+    margin-bottom: 32px;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  .form-group {
+    margin-bottom: 20px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  label {
+    font-weight: 600;
+    margin-bottom: 6px;
+    color: #1f2328;
+    font-size: 14px;
+  }
+
+  input[type='text'],
+  input[type='email'],
+  input[type='number'] {
+    padding: 8px 12px;
+    border: 1px solid #d0d7de;
+    border-radius: 6px;
+    font-size: 14px;
+    font-family: inherit;
+    transition: border-color 0.2s;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  select {
+    padding: 8px 10px;
+    border: 1px solid #d0d7de;
+    border-radius: 6px;
+    font-size: 14px;
+    font-family: inherit;
+    transition: border-color 0.2s;
+    background: white;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  input:focus,
+  select:focus {
+    outline: none;
+    border-color: #0969da;
+    box-shadow: 0 0 0 3px rgba(9, 105, 218, 0.1);
+  }
+
+  .input-with-unit {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .input-with-unit input {
+    flex: 1;
+  }
+
+  .input-hint {
+    font-size: 12px;
+    color: #656d76;
+    margin-top: 5px;
+  }
+
+  .checkbox-group {
+    margin-bottom: 24px;
+  }
+
+  .checkbox-label {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-weight: 400;
+    cursor: pointer;
+    line-height: 1.5;
+  }
+
+  .checkbox-label input[type='checkbox'] {
+    width: 16px;
+    height: 16px;
+    margin-top: 2px;
+    flex-shrink: 0;
+    accent-color: #0969da;
+    cursor: pointer;
+  }
+
+  .checkbox-label span {
+    font-size: 14px;
+    color: #1f2328;
+  }
+
+  .form-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 8px;
+  }
+
+  button {
+    padding: 9px 20px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    font-family: inherit;
+    transition: background-color 0.2s, opacity 0.2s;
+  }
+
+  .btn-primary {
+    background-color: #0969da;
+    color: white;
+  }
+
+  .btn-primary:hover:not(:disabled) {
+    background-color: #0860ca;
+  }
+
+  .btn-primary:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  .btn-secondary {
+    background-color: #6e7681;
+    color: white;
+  }
+
+  .btn-secondary:hover {
+    background-color: #57606a;
+  }
+
+  .feedback-banner {
+    padding: 12px 16px;
+    border-radius: 6px;
+    font-size: 14px;
+    margin-bottom: 20px;
+    display: none;
+    line-height: 1.5;
+  }
+
+  .feedback-banner.active {
+    display: block;
+  }
+
+  .feedback-banner.error {
+    background-color: #ffebe6;
+    border: 1px solid #f9bbb8;
+    color: #d1242f;
+  }
+
+  .feedback-banner.success {
+    background-color: #dafbe1;
+    border: 1px solid #9be9a8;
+    color: #1a7f37;
+  }
+
+  .form-divider {
+    border: none;
+    border-top: 1px solid #e5e7eb;
+    margin: 28px 0;
+  }
+
+  .form-section {
+    background: #f6f8fa;
+    border: 1px solid #d0d7de;
+    border-radius: 8px;
+    padding: 20px 20px 4px;
+    margin-bottom: 24px;
+  }
+
+  .section-title {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #1f2328;
+    margin: 0 0 20px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #0969da;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+  }
+
+  input[type='file'] {
+    padding: 6px 0;
+    font-size: 14px;
+    font-family: inherit;
+    color: #1f2328;
+    cursor: pointer;
+    width: 100%;
+  }
+
+  input[type='file']::file-selector-button {
+    padding: 6px 12px;
+    border: 1px solid #d0d7de;
+    border-radius: 6px;
+    background: white;
+    font-size: 13px;
+    font-family: inherit;
+    cursor: pointer;
+    margin-right: 10px;
+    transition: background-color 0.2s;
+  }
+
+  input[type='file']::file-selector-button:hover {
+    background: #f3f4f6;
+  }
+
+  textarea {
+    padding: 8px 12px;
+    border: 1px solid #d0d7de;
+    border-radius: 6px;
+    font-size: 14px;
+    font-family: inherit;
+    resize: vertical;
+    min-height: 100px;
+    width: 100%;
+    box-sizing: border-box;
+    transition: border-color 0.2s;
+  }
+
+  textarea:focus {
+    outline: none;
+    border-color: #0969da;
+    box-shadow: 0 0 0 3px rgba(9, 105, 218, 0.1);
+  }
+
+  .checkbox-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 4px;
+  }
+</style>
+
+<main class="project-container">
+  <h1>Submit a Project</h1>
+  <p class="subtitle">
+    Tell us about your project requirements and we will get back to you with a tailored solution.
+    Fields marked with <strong>*</strong> are required.
+  </p>
+
+  <div id="errorBanner" class="feedback-banner error" role="alert"></div>
+  <div id="successBanner" class="feedback-banner success" role="status"></div>
+
+  <form id="projectForm" novalidate>
+
+    <section class="form-section">
+      <h2 class="section-title">Required Inputs</h2>
+
+      <div class="form-group">
+        <label for="companyName">Company Name *</label>
+        <input
+          type="text"
+          id="companyName"
+          name="company_name"
+          placeholder="e.g., Hydac Industries"
+          autocomplete="organization"
+          required
+        />
+      </div>
+
+      <div class="form-group">
+        <label for="machineName">Machine Name *</label>
+        <input
+          type="text"
+          id="machineName"
+          name="machine_name"
+          placeholder="e.g., Hydraulic Press Unit 3"
+          required
+        />
+      </div>
+
+      <div class="form-group">
+        <label for="userEmail">Email Address *</label>
+        <input
+          type="email"
+          id="userEmail"
+          name="email"
+          placeholder="you@example.com"
+          autocomplete="email"
+          required
+        />
+        <small class="input-hint">We will use this address to follow up on your submission.</small>
+      </div>
+
+      <hr class="form-divider" />
+
+      <div class="form-group">
+        <label for="minVolume">Minimum Tank Volume *</label>
+        <div class="input-with-unit">
+          <input
+            type="number"
+            id="minVolume"
+            name="min_volume"
+            placeholder="e.g., 100"
+            min="0"
+            step="any"
+            required
+          />
+          <select id="minVolumeUnit" name="min_volume_unit">
+            <option value="L">L</option>
+            <option value="m^3">m³</option>
+            <option value="gal(US)">gal (US)</option>
+            <option value="ft^3">ft³</option>
+            <option value="bbl">bbl</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="maxVolume">Maximum Tank Volume *</label>
+        <div class="input-with-unit">
+          <input
+            type="number"
+            id="maxVolume"
+            name="max_volume"
+            placeholder="e.g., 1000"
+            min="0"
+            step="any"
+            required
+          />
+          <select id="maxVolumeUnit" name="max_volume_unit">
+            <option value="L">L</option>
+            <option value="m^3">m³</option>
+            <option value="gal(US)">gal (US)</option>
+            <option value="ft^3">ft³</option>
+            <option value="bbl">bbl</option>
+          </select>
+        </div>
+        <small class="input-hint">Must be greater than the minimum volume.</small>
+      </div>
+
+      <hr class="form-divider" />
+
+      <div class="form-group">
+        <label for="oilType">Oil Type *</label>
+        <select id="oilType" name="oil_type" required>
+          <option value="">-- Select an oil --</option>
+        </select>
+        <small class="input-hint">Select from available fluid types in the database.</small>
+      </div>
+
+      <div class="form-group">
+        <label for="nominalTemp">Nominal Temperature *</label>
+        <div class="input-with-unit">
+          <input
+            type="number"
+            id="nominalTemp"
+            name="nominal_temp"
+            placeholder="e.g., 40"
+            step="any"
+            required
+          />
+          <select id="nominalTempUnit" name="nominal_temp_unit"></select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="maxFlowRate">Maximum Total Flow Rate *</label>
+        <div class="input-with-unit">
+          <input
+            type="number"
+            id="maxFlowRate"
+            name="max_flow_rate"
+            placeholder="e.g., 100"
+            step="any"
+            min="0"
+            required
+          />
+          <select id="maxFlowRateUnit" name="max_flow_rate_unit"></select>
+        </div>
+      </div>
+
+      <hr class="form-divider" />
+
+      <div class="form-group">
+        <label for="tiltAngle">Tilt Angle *</label>
+        <div class="input-with-unit">
+          <input
+            type="number"
+            id="tiltAngle"
+            name="tilt_angle"
+            placeholder="e.g., 15"
+            step="any"
+            min="0"
+            max="90"
+            required
+          />
+          <select id="tiltAngleUnit" name="tilt_angle_unit">
+            <option value="deg">°</option>
+            <option value="rad">rad</option>
+          </select>
+        </div>
+        <small class="input-hint">Angle of tank inclination from horizontal (0° for no tilt).</small>
+      </div>
+
+      <div class="form-group">
+        <label for="materialThickness">Material Thickness *</label>
+        <div class="input-with-unit">
+          <input
+            type="number"
+            id="materialThickness"
+            name="material_thickness"
+            placeholder="e.g., 5"
+            step="any"
+            min="0"
+            required
+          />
+          <select id="materialThicknessUnit" name="material_thickness_unit">
+            <option value="mm">mm</option>
+            <option value="cm">cm</option>
+            <option value="in">in</option>
+            <option value="m">m</option>
+          </select>
+        </div>
+        <small class="input-hint">Wall thickness of the tank material.</small>
+      </div>
+
+    </section>
+
+    <section class="form-section">
+      <h2 class="section-title">Additional Information</h2>
+
+      <div class="form-group">
+        <label for="geometryFile">Geometry File</label>
+        <input
+          type="file"
+          id="geometryFile"
+          name="geometry_file"
+          accept=".step,.stp,.iges,.igs,.stl,.obj,.3mf,.dxf,.dwg"
+        />
+        <small class="input-hint">Upload a CAD or geometry file (STEP, IGES, STL, OBJ, DXF, etc.).</small>
+      </div>
+
+      <div class="form-group">
+        <label for="portFlowFile">Port Flow Rate File</label>
+        <input
+          type="file"
+          id="portFlowFile"
+          name="port_flow_file"
+          accept=".csv,.xlsx,.xls,.txt,.json"
+        />
+        <small class="input-hint">Upload a file containing port flow rate data (PNG, CSV, Excel, TXT, JSON).</small>
+      </div>
+
+      <hr class="form-divider" />
+
+      <div class="form-group">
+        <label for="eau">EAU (Estimated Annual Usage)</label>
+        <input
+          type="number"
+          id="eau"
+          name="eau"
+          placeholder="e.g., 500"
+          min="0"
+          step="1"
+        />
+        <small class="input-hint">Estimated number of units produced per year.</small>
+      </div>
+
+      <div class="form-group">
+        <label for="totalSystemVolume">Total System Volume</label>
+        <div class="input-with-unit">
+          <input
+            type="number"
+            id="totalSystemVolume"
+            name="total_system_volume"
+            placeholder="e.g., 500"
+            min="0"
+            step="any"
+          />
+          <select id="totalSystemVolumeUnit" name="total_system_volume_unit">
+            <option value="L">L</option>
+            <option value="m^3">m³</option>
+            <option value="gal(US)">gal (US)</option>
+            <option value="ft^3">ft³</option>
+            <option value="bbl">bbl</option>
+          </select>
+        </div>
+        <small class="input-hint">Total fluid volume in the entire hydraulic system.</small>
+      </div>
+
+      <hr class="form-divider" />
+
+      <div class="form-group">
+        <label>Tank Resizing Flexibility</label>
+        <div class="checkbox-list">
+          <label class="checkbox-label">
+            <input type="checkbox" id="resizeX" name="resize_x" />
+            <span>Can the tank be made longer/shorter in the X-direction?</span>
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" id="resizeY" name="resize_y" />
+            <span>Can the tank be made longer/shorter in the Y-direction?</span>
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" id="resizeZ" name="resize_z" />
+            <span>Can the tank be made longer/shorter in the Z-direction?</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="tankMaterial">Preferred Tank Material</label>
+        <select id="tankMaterial" name="tank_material">
+          <option value="">-- Select a material --</option>
+          <option value="Plastic">Plastic</option>
+          <option value="Metal">Metal</option>
+        </select>
+      </div>
+
+      <hr class="form-divider" />
+
+      <div class="form-group">
+        <label>Optimization Goals</label>
+        <div class="checkbox-list">
+          <label class="checkbox-label">
+            <input type="checkbox" name="opt_oil_reduction" value="Oil Reduction" />
+            <span>Oil Reduction</span>
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" name="opt_cost_reduction" value="Cost Reduction" />
+            <span>Cost Reduction</span>
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" name="opt_splash_reduction" value="Splash Reduction" />
+            <span>Splash Reduction</span>
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" name="opt_new_machine" value="New Machine" />
+            <span>New Machine</span>
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" name="opt_smaller_size" value="Smaller Size" />
+            <span>Smaller Size</span>
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" name="opt_better_deaeration" value="Better Deaeration" />
+            <span>Better Deaeration</span>
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" name="opt_tank_validation" value="Tank Validation" />
+            <span>Tank Validation</span>
+          </label>
+        </div>
+      </div>
+
+      <hr class="form-divider" />
+
+      <div class="form-group">
+        <label for="oemReturnLineFilter">What OEM return line filter is being used?</label>
+        <input
+          type="text"
+          id="oemReturnLineFilter"
+          name="oem_return_line_filter"
+          placeholder=""
+        />
+      </div>
+
+      <div class="form-group">
+        <label for="oemFilterElement">What OEM filter element is being used?</label>
+        <input
+          type="text"
+          id="oemFilterElement"
+          name="oem_filter_element"
+          placeholder=""
+        />
+      </div>
+
+      <hr class="form-divider" />
+
+      <div class="form-group">
+        <label for="comments">Comments</label>
+        <textarea
+          id="comments"
+          name="comments"
+          placeholder="Any additional details, constraints, or questions about your project..."
+        ></textarea>
+      </div>
+
+    </section>
+
+    <div class="form-group checkbox-group">
+      <label class="checkbox-label">
+        <input type="checkbox" id="consent" name="consent" required />
+        <span>I agree to be contacted by email about my project submission. *</span>
+      </label>
+    </div>
+
+    <div class="form-actions">
+      <button type="submit" class="btn-primary" id="submitBtn">Submit Project</button>
+      <button type="reset" class="btn-secondary">Clear</button>
+    </div>
+  </form>
+</main>
+
+</Layout>
+
+<script is:inline>
+  (() => {
+    // Web3Forms backend
+    // 1. Go to https://web3forms.com
+    // 2. Enter the email address you want to receive submissions at.
+    // 3. They will email you an access key instantly (free, no account needed).
+    // 4. Paste that key below, replacing YOUR_ACCESS_KEY_HERE.
+    const WEB3FORMS_ACCESS_KEY = 'YOUR_ACCESS_KEY_HERE';
+
+    // Populate a unit <select> from unit_converter.js globals
+    function fillUnitSelect(selectId, unitType, defaultUnit) {
+      const select = document.getElementById(selectId);
+      if (!window.getAvailableUnits || !select) return false;
+      const units = getAvailableUnits(unitType);
+      units.forEach(u => {
+        const opt = document.createElement('option');
+        opt.value = u;
+        opt.textContent = window.getUnitDisplayName ? getUnitDisplayName(u) : u;
+        if (u === defaultUnit) opt.selected = true;
+        select.appendChild(opt);
+      });
+      return true;
+    }
+
+    // Populate oil type dropdown once OilProps is available
+    function populateOilDropdown() {
+      const select = document.getElementById('oilType');
+      if (!window.OilProps) return;
+      OilProps.loadFluidData().then(() => {
+        OilProps.getFluidNames().forEach(name => {
+          const opt = document.createElement('option');
+          opt.value = name;
+          opt.textContent = name;
+          select.appendChild(opt);
+        });
+      }).catch(() => {});
+    }
+
+    function initDropdowns() {
+      fillUnitSelect('nominalTempUnit', 'temperature', 'C');
+      fillUnitSelect('maxFlowRateUnit', 'flow', 'L/min');
+      populateOilDropdown();
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initDropdowns);
+    } else {
+      initDropdowns();
+    }
+
+    const form          = document.getElementById('projectForm');
+    const submitBtn     = document.getElementById('submitBtn');
+    const errorBanner   = document.getElementById('errorBanner');
+    const successBanner = document.getElementById('successBanner');
+
+    function showError(msg) {
+      errorBanner.textContent = msg;
+      errorBanner.classList.add('active');
+      successBanner.classList.remove('active');
+      errorBanner.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    function showSuccess(msg) {
+      successBanner.textContent = msg;
+      successBanner.classList.add('active');
+      errorBanner.classList.remove('active');
+      successBanner.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    function clearFeedback() {
+      errorBanner.classList.remove('active');
+      successBanner.classList.remove('active');
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      clearFeedback();
+
+      const companyName           = document.getElementById('companyName').value.trim();
+      const machineName           = document.getElementById('machineName').value.trim();
+      const email                 = document.getElementById('userEmail').value.trim();
+      const minVol                = parseFloat(document.getElementById('minVolume').value);
+      const minUnit               = document.getElementById('minVolumeUnit').value;
+      const maxVol                = parseFloat(document.getElementById('maxVolume').value);
+      const maxUnit               = document.getElementById('maxVolumeUnit').value;
+      const oilType               = document.getElementById('oilType').value;
+      const nominalTemp           = parseFloat(document.getElementById('nominalTemp').value);
+      const nominalTempUnit       = document.getElementById('nominalTempUnit').value;
+      const maxFlowRate           = parseFloat(document.getElementById('maxFlowRate').value);
+      const maxFlowRateUnit       = document.getElementById('maxFlowRateUnit').value;
+      const tiltAngle             = parseFloat(document.getElementById('tiltAngle').value);
+      const tiltAngleUnit         = document.getElementById('tiltAngleUnit').value;
+      const materialThickness     = parseFloat(document.getElementById('materialThickness').value);
+      const materialThicknessUnit = document.getElementById('materialThicknessUnit').value;
+      const geometryFile          = document.getElementById('geometryFile').files[0] || null;
+      const portFlowFile          = document.getElementById('portFlowFile').files[0] || null;
+      const comments              = document.getElementById('comments').value.trim();
+      const isEAU                 = parseFloat(document.getElementById('eau').value);
+      const totalSysVol           = parseFloat(document.getElementById('totalSystemVolume').value);
+      const totalSysVolUnit       = document.getElementById('totalSystemVolumeUnit').value;
+      const resizeX               = document.getElementById('resizeX').checked;
+      const resizeY               = document.getElementById('resizeY').checked;
+      const resizeZ               = document.getElementById('resizeZ').checked;
+      const tankMaterial          = document.getElementById('tankMaterial').value;
+      const optGoals              = Array.from(document.querySelectorAll('input[name^="opt_"]:checked')).map(cb => cb.value);
+      const oemReturnLineFilter   = document.getElementById('oemReturnLineFilter').value.trim();
+      const oemFilterElement      = document.getElementById('oemFilterElement').value.trim();
+      const consent               = document.getElementById('consent').checked;
+
+      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        showError('Please enter a valid email address.');
+        return;
+      }
+      if (!companyName) {
+        showError('Please enter a company name.');
+        return;
+      }
+      if (!machineName) {
+        showError('Please enter a machine name.');
+        return;
+      }
+      if (!Number.isFinite(minVol) || minVol < 0) {
+        showError('Please enter a valid minimum tank volume (must be 0 or greater).');
+        return;
+      }
+      if (!Number.isFinite(maxVol) || maxVol < 0) {
+        showError('Please enter a valid maximum tank volume (must be 0 or greater).');
+        return;
+      }
+      if (maxVol <= minVol) {
+        showError('Maximum tank volume must be greater than the minimum tank volume.');
+        return;
+      }
+      if (!oilType) {
+        showError('Please select an oil type.');
+        return;
+      }
+      if (!Number.isFinite(nominalTemp)) {
+        showError('Please enter a valid nominal temperature.');
+        return;
+      }
+      if (!Number.isFinite(maxFlowRate) || maxFlowRate < 0) {
+        showError('Please enter a valid maximum flow rate (must be 0 or greater).');
+        return;
+      }
+      if (!Number.isFinite(tiltAngle) || tiltAngle < 0) {
+        showError('Please enter a valid tilt angle (must be 0 or greater).');
+        return;
+      }
+      if (!Number.isFinite(materialThickness) || materialThickness < 0) {
+        showError('Please enter a valid material thickness (must be 0 or greater).');
+        return;
+      }
+      if (!consent) {
+        showError('Please check the consent box before submitting.');
+        return;
+      }
+
+      submitBtn.disabled    = true;
+      submitBtn.textContent = 'Sending...';
+
+      try {
+        const formData = new FormData();
+        formData.append('access_key',             WEB3FORMS_ACCESS_KEY);
+        formData.append('subject',                'New Project Submission');
+        formData.append('from_name',              'SimDev Website');
+        formData.append('replyto',                email);
+        formData.append('Company Name',           companyName || 'Not specified');
+        formData.append('Machine Name',           machineName || 'Not specified');
+        formData.append('Email',                  email);
+        formData.append('Minimum Tank Volume',    minVol + ' ' + minUnit);
+        formData.append('Maximum Tank Volume',    maxVol + ' ' + maxUnit);
+        formData.append('Oil Type',               oilType);
+        formData.append('Nominal Temperature',    nominalTemp + ' ' + nominalTempUnit);
+        formData.append('Max Flow Rate',          maxFlowRate + ' ' + maxFlowRateUnit);
+        formData.append('Tilt Angle',             tiltAngle + ' ' + tiltAngleUnit);
+        formData.append('Material Thickness',     materialThickness + ' ' + materialThicknessUnit);
+        formData.append('Email Consent',          'Yes');
+        if (Number.isFinite(isEAU))              formData.append('EAU',                    isEAU.toString());
+        if (Number.isFinite(totalSysVol))         formData.append('Total System Volume',    totalSysVol + ' ' + totalSysVolUnit);
+        formData.append('Resize X-Direction',     resizeX ? 'Yes' : 'No');
+        formData.append('Resize Y-Direction',     resizeY ? 'Yes' : 'No');
+        formData.append('Resize Z-Direction',     resizeZ ? 'Yes' : 'No');
+        if (tankMaterial)                         formData.append('Preferred Tank Material', tankMaterial);
+        if (optGoals.length)                      formData.append('Optimization Goals',      optGoals.join(', '));
+        if (oemReturnLineFilter)                  formData.append('OEM Return Line Filter',  oemReturnLineFilter);
+        if (oemFilterElement)                     formData.append('OEM Filter Element',       oemFilterElement);
+        if (comments)     formData.append('Comments',            comments);
+        if (geometryFile) formData.append('Geometry File',       geometryFile, geometryFile.name);
+        if (portFlowFile) formData.append('Port Flow Rate File', portFlowFile, portFlowFile.name);
+
+        const res = await fetch('https://api.web3forms.com/submit', {
+          method:  'POST',
+          headers: { Accept: 'application/json' },
+          body:    formData,
+        });
+
+        const data = await res.json();
+
+        if (data.success) {
+          showSuccess('Your project has been submitted! We will be in touch soon.');
+          form.reset();
+        } else {
+          showError(data.message || 'Submission failed. Please try again.');
+        }
+      } catch (err) {
+        showError('Network error - please check your connection and try again.');
+        console.error(err);
+      } finally {
+        submitBtn.disabled    = false;
+        submitBtn.textContent = 'Submit Project';
+      }
+    });
+  })();
+</script>
+
+<script src={`${BASE_PATH}/scripts/unit_converter.js`}></script>
+<script src={`${BASE_PATH}/scripts/oil_properties/getOilProperties.js`}></script>

@@ -350,6 +350,23 @@ const BASE_PATH = import.meta.env.BASE_URL.replace(/\/$/, '');
   </div>
 </div>
 
+    <!-- Percent Change -->
+    <div class="border">
+      <h3>Percent Change</h3>
+      <div class="row-inline">
+        <label>Original Value:</label>
+        <input id="pctOriginal" class="value" type="number" step="any" placeholder="e.g. 50"/>
+      </div>
+      <div class="row-inline">
+        <label>New Value:</label>
+        <input id="pctNew" class="value" type="number" step="any" placeholder="e.g. 75"/>
+      </div>
+      <div class="row-inline">
+        <label>% Change:</label>
+        <input id="pctResult" class="value" type="text" readonly placeholder="—"/>
+      </div>
+    </div>
+
   </div>
 </main>
 

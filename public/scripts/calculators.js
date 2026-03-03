@@ -339,6 +339,51 @@ function initializeReynoldsCalculator() {
   calcReynolds(); // Initial calculation
 }
 
+// ========== PERCENT CHANGE CALCULATOR ==========
+// % change = (newVal - origVal) / |origVal| × 100
+// Editing either input recomputes the result.
+// Editing the result field back-solves: newVal = origVal × (1 + pct/100)
+
+/**
+ * Initialize the percent change calculator.
+ */
+function initializePercentChangeCalculator() {
+  const original = document.getElementById("pctOriginal");
+  const newVal   = document.getElementById("pctNew");
+  const result   = document.getElementById("pctResult");
+
+  if (!original || !newVal || !result) {
+    console.warn("Percent change calculator: missing DOM elements");
+    return;
+  }
+
+  /** Compute % change from original → new, display with increase/decrease label */
+  function calcPct() {
+    const o = parseFloat(original.value);
+    const n = parseFloat(newVal.value);
+    if (!Number.isFinite(o) || !Number.isFinite(n)) { result.value = ''; return; }
+    if (o === 0) { result.value = 'N/A (original is 0)'; return; }
+    const pct = ((n - o) / Math.abs(o)) * 100;
+    const sign = pct > 0 ? '+' : '';
+    const label = pct > 0 ? 'increase' : pct < 0 ? 'decrease' : 'no change';
+    result.value = `${sign}${pct.toFixed(4)}%  (${label})`;
+  }
+
+  /** Back-solve: given original and % change, compute new value */
+  function calcNewFromPct() {
+    const o   = parseFloat(original.value);
+    const raw = result.value.trim();
+    // Accept bare numbers like "-25" or "+10.5" from the result field
+    const pct = parseFloat(raw);
+    if (!Number.isFinite(o) || !Number.isFinite(pct)) return;
+    newVal.value = (o * (1 + pct / 100)).toFixed(6);
+  }
+
+  original.addEventListener("input", calcPct);
+  newVal.addEventListener("input",   calcPct);
+  result.addEventListener("change",  calcNewFromPct);
+}
+
 // ========== INITIALIZATION ==========
 
 /**
@@ -354,6 +399,7 @@ function initializeCalculators() {
   initializePipeVelocityCalculator();
   initializeCircleAreaCalculator();
   initializeReynoldsCalculator();
+  initializePercentChangeCalculator();
 }
 
 if (document.readyState === "loading") {
@@ -364,7 +410,8 @@ if (document.readyState === "loading") {
 
 // ========== BROWSER EXPORTS ==========
 if (typeof window !== "undefined") {
-  window.initializePipeVelocityCalculator = initializePipeVelocityCalculator;
-  window.initializeCircleAreaCalculator   = initializeCircleAreaCalculator;
-  window.initializeReynoldsCalculator     = initializeReynoldsCalculator;
+  window.initializePipeVelocityCalculator   = initializePipeVelocityCalculator;
+  window.initializeCircleAreaCalculator     = initializeCircleAreaCalculator;
+  window.initializeReynoldsCalculator       = initializeReynoldsCalculator;
+  window.initializePercentChangeCalculator  = initializePercentChangeCalculator;
 }
