@@ -438,6 +438,27 @@ const BASE_PATH = import.meta.env.BASE_URL.replace(/\/$/, '');
         <small class="input-hint">Wall thickness of the tank material.</small>
       </div>
 
+      <hr class="form-divider" />
+
+      <div class="form-group">
+        <label>Tank Resizing Flexibility *</label>
+        <div class="checkbox-list">
+          <label class="checkbox-label">
+            <input type="checkbox" id="resizeX" name="resize_x" />
+            <span>Can the tank be made longer/shorter in the X-direction?</span>
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" id="resizeY" name="resize_y" />
+            <span>Can the tank be made longer/shorter in the Y-direction?</span>
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" id="resizeZ" name="resize_z" />
+            <span>Can the tank be made longer/shorter in the Z-direction?</span>
+          </label>
+        </div>
+        <small class="input-hint">Select all directions in which the tank dimensions can be adjusted.</small>
+      </div>
+
     </section>
 
     <section class="form-section">
@@ -503,24 +524,6 @@ const BASE_PATH = import.meta.env.BASE_URL.replace(/\/$/, '');
       </div>
 
       <hr class="form-divider" />
-
-      <div class="form-group">
-        <label>Tank Resizing Flexibility</label>
-        <div class="checkbox-list">
-          <label class="checkbox-label">
-            <input type="checkbox" id="resizeX" name="resize_x" />
-            <span>Can the tank be made longer/shorter in the X-direction?</span>
-          </label>
-          <label class="checkbox-label">
-            <input type="checkbox" id="resizeY" name="resize_y" />
-            <span>Can the tank be made longer/shorter in the Y-direction?</span>
-          </label>
-          <label class="checkbox-label">
-            <input type="checkbox" id="resizeZ" name="resize_z" />
-            <span>Can the tank be made longer/shorter in the Z-direction?</span>
-          </label>
-        </div>
-      </div>
 
       <div class="form-group">
         <label for="tankMaterial">Preferred Tank Material</label>
@@ -769,6 +772,10 @@ const BASE_PATH = import.meta.env.BASE_URL.replace(/\/$/, '');
       }
       if (!Number.isFinite(materialThickness) || materialThickness < 0) {
         showError('Please enter a valid material thickness (must be 0 or greater).');
+        return;
+      }
+      if (!resizeX && !resizeY && !resizeZ) {
+        showError('Please select at least one direction for tank resizing flexibility.');
         return;
       }
       if (!consent) {

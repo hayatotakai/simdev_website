@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Filter Data Viewer & Plot</title>
+<link rel="stylesheet" href="main.css">
+<style>
+  table { border-collapse: collapse; 
+    width:80%; margin: auto; 
+    box-shadow:0 2px 6px rgba(0,0,0,0.08); 
+  }
+  th, td { border:1px solid #e3e6ea; padding:4px; text-align:left; vertical-align:top; }
+  th { background: var(--table-even); color:white; font-weight:600; position:sticky; top:0; }
+  .link { color:#0b6cff; text-decoration:none; }
+  .center { text-align:center; }
+  #chartContainer { margin-top:40px; padding:20px; box-shadow:0 2px 6px rgba(0,0,0,0.1); }
+  input, select, button { margin:5px; padding:6px; }
+  table { background: var(--table-odd); }
+  th, td { text-align: center; }
+  .hidden { display: none; }
+  #tableContainer { transition: opacity 0.4s ease; }
+  #tableContainer.show { display: block; opacity: 1; }
+  #tableContainer.hidden { opacity: 0; }
+  #toggleTableBtn {
+    display: flex; justify-content: center; align-items: center;
+    width: 100px; margin: auto; height: 30px;
+  }
+</style>
+</head>
+<!-- ulp mobile micron media
+ usf stat free -->
+<body>
+  <div id="headerContainer"></div>
+<main>
+<div class="border">
+  <h2>Upload JSON and Generate Filter Data</h2>
+  <input type="file" id="jsonFile" accept=".json">
+  <div>
+    <label>Oil Type
+      <select id="fluidSelect" style="min-width:180px">
+        <option value="">-- Select --</option>
+      </select>
+    </label>
+    <label>Temperature:
+      <input type="number" id="temperature" step="1.0" placeholder="Enter temperature" min="-40">
+      <select id="tempUnit" class="unit-section" data-type="temperature"></select>
+    </label>
+    <label>Flow Rate:
+      <input type="number" id="flowRateInput" step="0.1" placeholder="Enter flow rate" min="0.0">
+      <select id="flowUnit" class="unit-section" data-type="flow"></select>
+    </label>
+    <button id="plotBtn">Plot Data</button>
+  </div>
+  <p id="status"></p>
+  <label>Max Pressure Drop:
+    <input type="number" id="pressure" step="1.0" placeholder="Optional" min="0">
+    <select id="pressureUnit" class="unit-section" data-type="pressure"></select>
+  </label>
+</div>
+<div class="border">
+  <h3>Filters results:</h3>
+  <p id="tempDisplay">Temperature:</p>
+  <p id="viscosityDisplay">Viscosity:</p>
+  <p id="flowRateDisplay">Flow Rate:</p>
+  <h4>Filtered by flow rate:</h4>
+  <p id="filterFlowResults">Filters:</p>
+  <h4>Filtered by Pressure Drop:</h4>
+  <p id="filterdPResults">Filters:</p>
+  <h4>Filtered by All:</h4>
+  <p id="filterResults">Filters:</p>
+</div>
+<div id="chartContainer" class="border">
+  <h3>Pressure Drop vs Flow Rate</h3>
+  <label>Pressure Drop at - :</label>
+  <ul id="filterList"></ul>
+  <div style="margin-bottom:10px;">
+    <label>Min X: <input type="number" id="minX" placeholder="Auto" step="any" style="width:80px;"></label>
+    <label>Max X: <input type="number" id="maxX" placeholder="Auto" step="any" style="width:80px;"></label>
+    <label>Min Y: <input type="number" id="minY" placeholder="Auto" step="any" style="width:80px;"></label>
+    <label>Max Y: <input type="number" id="maxY" placeholder="Auto" step="any" style="width:80px;"></label>
+  </div>
+  <canvas id="chart" width="800" height="400"></canvas>
+</div>
+<div class="border">
+  <button id="toggleTableBtn">Show Table</button>
+  <div class="hidden" id="tableContainer" style="overflow:auto; margin-top:10px;"></div>
+</div>
+</main>
+
+<!-- Dependencies -->
+<script src="header.js"></script>
+<script>loadHeader('headerContainer');</script>
+<script src="unitConverter.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="getOilProperties.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.11.1/math.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
+
+<script>
+// Initialize DOM and load data
+const rootStyle = getComputedStyle(document.documentElement);
+
+document.addEventListener("DOMContentLoaded", async () => {
+  const unitSelects = document.querySelectorAll(".unit-section");
+  unitSelects.forEach(select => {
+    const type = select.dataset.type;
+    try {
+      const units = getAvailableUnits(type);
+      units.forEach(u => {
+        const opt = new Option(u, u);
+        select.add(opt);
+      });
+      if (type === "temperature") select.value = "C";
+      if (type === "flow") select.value = "gpm";
+    } catch (err) {
+      console.warn(`Units for "${type}" not found:`, err);
+    }
+  });
+
+  const fluidSelect = document.getElementById("fluidSelect");
+  try {
+    await loadFluidData();
+    const fluids = OilProps.getFluidNames();
+    fluids.forEach(f => {
+      const opt = document.createElement("option");
+      opt.value = f;
+      opt.textContent = f;
+      fluidSelect.appendChild(opt);
+    });
+  } catch (e) {
+    console.warn("Could not load fluids", e);
+  }
+
+  tryLoadDefaultJson();
+});
+
+let chartInstance = null;
+let loadedData = null;
+let currentFlowRate = null;
+let currentMaxDp = null;
+
+async function tryLoadDefaultJson() {
+  try {
+    const response = await fetch("/Filter_data.json", { method: "HEAD" });
+    if (response.ok) {
+      const jsonResp = await fetch("/Filter_data.json");
+      const obj = await jsonResp.json();
+      const dataRoot = obj.data || obj;
+      loadedData = dataRoot;
+      generateTable(dataRoot);
+      document.getElementById("status").textContent = "Loaded /Filter_data.json successfully!";
+    } else {
+      document.getElementById("status").textContent = "No default JSON found. Please upload one.";
+    }
+  } catch (err) {
+    console.warn("Error checking /Filter_data.json:", err);
+    document.getElementById("status").textContent = "Error checking /Filter_data.json. Please upload manually.";
+  }
+}
+
+document.getElementById('jsonFile').addEventListener('change', e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = evt => {
+    try {
+      const obj = JSON.parse(evt.target.result);
+      const dataRoot = obj.data || obj;
+      loadedData = dataRoot;
+      generateTable(dataRoot);
+      document.getElementById('status').textContent = "Table generated successfully!";
+    } catch (err) {
+      document.getElementById('status').textContent = "Error parsing JSON: " + err;
+    }
+  };
+  reader.readAsText(file);
+});
+</script>
+
+<script>
+// Utility Functions
+function getRandomColor() {
+  return `hsl(${Math.floor(Math.random()*360)}, 70%, 50%)`;
+}
+
+function getShadeColor(baseColor, index, total) {
+  // Extract hue and saturation from base HSL color
+  const match = baseColor.match(/hsl\((\d+),\s*(\d+)%,\s*(\d+)%\)/);
+  if (!match) return baseColor;
+  const hue = parseInt(match[1]);
+  const saturation = parseInt(match[2]);
+  // Vary lightness from 30% to 70% based on index
+  const minLightness = 30;
+  const maxLightness = 70;
+  const lightness = minLightness + (index / (total - 1 || 1)) * (maxLightness - minLightness);
+  return `hsl(${hue}, ${saturation}%, ${Math.round(lightness)}%)`;
+}
+
+function safe(val, digits = 4) {
+  return (typeof val === "number" && !isNaN(val)) ? val.toFixed(digits) : "-";
+}
+
+// Filter Functions
+function filterByFlowRate(dataJSON, flowRate) {
+  if (!dataJSON || isNaN(flowRate)) return {};
+  let filteredJSON = {};
+  for (let [seriesName, seriesInfo] of Object.entries(dataJSON)) {
+    const filters = seriesInfo.filters || {};
+    let validFilters = [];
+    for (let [filterName, filterInfo] of Object.entries(filters)) {
+      const maxFlow = parseFloat(filterInfo.maximum_flow_rate) || Infinity;
+      if (maxFlow > flowRate) {
+        validFilters.push({ filterName, filterInfo, maxFlow });
+      }
+    }
+    if (validFilters.length > 0) {
+      validFilters.sort((a, b) => a.maxFlow - b.maxFlow);
+      const lowestFilter = validFilters[0];
+      filteredJSON[seriesName] = {
+        filters: { [lowestFilter.filterName]: lowestFilter.filterInfo }
+      };
+    }
+  }
+  return filteredJSON;
+}
+
+function filterBydP(dataJSON, viscosity, flowRate, maxdP) {
+  if (!dataJSON || isNaN(viscosity) || isNaN(flowRate)) return {};
+  let filteredJSON = {};
+  function fitFlowModel(data) {
+    const X = data.map(d => [Math.log(d.pressure), -Math.log(d.viscosity), 1]);
+    const y = data.map(d => Math.log(d.flow));
+    const XT = math.transpose(X);
+    const XTX = math.multiply(XT, X);
+    const XTy = math.multiply(XT, y);
+    const coeff = math.lusolve(XTX, XTy).flat();
+    return { a: coeff[0], b: coeff[1], k: Math.exp(coeff[2]) };
+  }
+  function calculateDp(Q, v, AX2, BX, model) {
+    if (Q <= 0) return 0;
+    const p = Math.pow((Q * Math.pow(v, model.b)) / model.k, 1 / model.a);
+    const SK = p / Q;
+    return (AX2 / 1000) * (Q ** 2) + (BX / 100) * Q + (SK * Q);
+  }
+  for (let [seriesName, seriesInfo] of Object.entries(dataJSON)) {
+    const filters = seriesInfo.filters || {};
+    let filteredFilters = {};
+    for (let [filterName, filterInfo] of Object.entries(filters)) {
+      const elements = filterInfo.element || {};
+      let filteredElements = {};
+      for (let [elemName, elemInfo] of Object.entries(elements)) {
+        const filterData = elemInfo.data || [];
+        if (filterData.length < 3) continue;
+        const model = fitFlowModel(filterData);
+        const AX2 = parseFloat(elemInfo.AX2 || 0);
+        const BX = parseFloat(elemInfo.BX || 0);
+        const Dp = calculateDp(flowRate, viscosity, AX2, BX, model);
+        if (isNaN(maxdP) || Dp <= maxdP) {
+          if (!filteredJSON[seriesName]) {
+            filteredJSON[seriesName] = { filters: {} };
+          }
+          if (!filteredFilters[filterName]) {
+            filteredFilters[filterName] = { ...filterInfo, element: {} };
+          }
+          filteredFilters[filterName].element[elemName] = elemInfo;
+        }
+      }
+      if (Object.keys(filteredElements).length > 0) {
+        filteredFilters[filterName].element = filteredElements;
+      }
+    }
+    if (Object.keys(filteredFilters).length > 0) {
+      filteredJSON[seriesName].filters = filteredFilters;
+    }
+  }
+  return filteredJSON;
+}
+
+function applyFilters(dataJSON, filters) {
+  if (!dataJSON) return {};
+  let result = { ...dataJSON };
+  filters.forEach(filter => {
+    result = filter.fn(result, ...filter.args);
+  });
+  return result;
+}
+
+// Display and Plotting Functions
+function filterResults(dataJSON, viscosity, flowRate, maxdP) {
+  const filterListUL = document.getElementById('filterList');
+  filterListUL.innerHTML = "";
+  function fitFlowModel(data) {
+    const X = data.map(d => [Math.log(d.pressure), -Math.log(d.viscosity), 1]);
+    const y = data.map(d => Math.log(d.flow));
+    const XT = math.transpose(X);
+    const XTX = math.multiply(XT, X);
+    const XTy = math.multiply(XT, y);
+    const coeff = math.lusolve(XTX, XTy).flat();
+    return { a: coeff[0], b: coeff[1], k: Math.exp(coeff[2]) };
+  }
+  function calculateDp(Q, v, AX2, BX, model) {
+    if (Q <= 0) return 0;
+    const p = Math.pow((Q * Math.pow(v, model.b)) / model.k, 1 / model.a);
+    const SK = p / Q;
+    return (AX2 / 1000) * (Q ** 2) + (BX / 100) * Q + (SK * Q);
+  }
+  for (let [seriesName, seriesInfo] of Object.entries(dataJSON)) {
+    const filters = seriesInfo.filters || {};
+    for (let [filterName, filterInfo] of Object.entries(filters)) {
+      const elements = filterInfo.element || {};
+      for (let [elemName, elemInfo] of Object.entries(elements)) {
+        const filterData = elemInfo.data || [];
+        if (filterData.length < 3) continue;
+        const model = fitFlowModel(filterData);
+        const AX2 = parseFloat(elemInfo.AX2 || 0);
+        const BX = parseFloat(elemInfo.BX || 0);
+        const Dp = calculateDp(flowRate, viscosity, AX2, BX, model);
+        const li = document.createElement('li');
+        li.textContent = `${seriesName}-${filterName}-${elemName}: ${Dp.toFixed(2)} bar`;
+        filterListUL.appendChild(li);
+      }
+    }
+  }
+  return dataJSON;
+}
+
+function plotFilters(dataJSON, viscosity) {
+  const datasets = [];
+  const seriesColors = {};
+
+  function fitFlowModel(data) {
+    const X = data.map(d => [Math.log(d.pressure), -Math.log(d.viscosity), 1]);
+    const y = data.map(d => Math.log(d.flow));
+    const XT = math.transpose(X);
+    const XTX = math.multiply(XT, X);
+    const XTy = math.multiply(XT, y);
+    const coeff = math.lusolve(XTX, XTy).flat();
+    return { a: coeff[0], b: coeff[1], k: Math.exp(coeff[2]) };
+  }
+
+  function calculatedP(Q, v, AX2, BX, model) {
+    if (Q <= 0) return 0;
+    const p = Math.pow((Q * Math.pow(v, model.b)) / model.k, 1 / model.a);
+    const SK = p / Q;
+    return (AX2 / 1000) * (Q ** 2) + (BX / 100) * Q + (SK * Q);
+  }
+
+  for (let [seriesName, seriesInfo] of Object.entries(dataJSON)) {
+    // Assign a random color to the series if not already assigned
+    if (!seriesColors[seriesName]) {
+      seriesColors[seriesName] = getRandomColor();
+    }
+    const baseColor = seriesColors[seriesName];
+    const filters = seriesInfo.filters || {};
+    const elementCounts = Object.values(filters).reduce((acc, filterInfo) => {
+      return acc + Object.keys(filterInfo.element || {}).length;
+    }, 0);
+
+    let elementIndex = 0;
+
+    for (let [filterName, filterInfo] of Object.entries(filters)) {
+      const maxFlow = parseFloat(filterInfo.maximum_flow_rate) || 100;
+      const elements = filterInfo.element || {};
+      for (let [elemName, elemInfo] of Object.entries(elements)) {
+        const filterData = elemInfo.data || [];
+        if (filterData.length < 3) continue;
+        const model = fitFlowModel(filterData);
+        const Q_values = [];
+        const Dp_values = [];
+        for (let Q = 0; Q <= maxFlow; Q += maxFlow / 50) {
+          if (Q <= 0) continue;
+          Q_values.push(Q);
+          Dp_values.push(calculatedP(Q, viscosity, parseFloat(elemInfo.AX2 || 0), parseFloat(elemInfo.BX || 0), model));
+        }
+        // Use a shade of the series' base color
+        const shadeColor = getShadeColor(baseColor, elementIndex, elementCounts);
+        datasets.push({
+          label: `${seriesName}-${filterName}-${elemName}`,
+          data: Q_values.map((q, i) => ({ x: q, y: Dp_values[i] })),
+          borderColor: shadeColor,
+          borderWidth: 2,
+          fill: false
+        });
+        elementIndex++;
+      }
+    }
+  }
+
+  const ctx = document.getElementById('chart').getContext('2d');
+  if (chartInstance) chartInstance.destroy();
+  const annotations = [];
+  if (currentFlowRate !== null && !isNaN(currentFlowRate)) {
+    annotations.push({
+      type: 'line', xMin: currentFlowRate, xMax: currentFlowRate,
+      borderColor: rootStyle.getPropertyValue('--chart-text-light').trim(),
+      borderWidth: 2, borderDash: [5, 5],
+      label: {
+        content: `Flow Rate: ${currentFlowRate.toFixed(2)} L/min`,
+        enabled: true, position: 'top', backgroundColor: 'rgba(255, 0, 0, 0.7)',
+        color: '#FFFFFF', font: { size: 12 }
+      }
+    });
+  }
+  if (currentMaxDp !== null && !isNaN(currentMaxDp)) {
+    annotations.push({
+      type: 'line', yMin: currentMaxDp, yMax: currentMaxDp,
+      borderColor: '#00FF00', borderWidth: 2,
+      label: {
+        content: `Max dP: ${currentMaxDp.toFixed(2)} bar`,
+        enabled: true, position: 'right', backgroundColor: 'rgba(0, 255, 0, 0.7)',
+        color: '#FFFFFF', font: { size: 12 }
+      }
+    });
+  }
+  chartInstance = new Chart(ctx, {
+    type: 'line',
+    data: { datasets },
+    options: {
+      responsive: true,
+      plugins: {
+        title: {
+          display: true, text: 'Pressure Drop vs Flow Rate',
+          font: { size: 18, family: "Helvetica", weight: '100' },
+          color: rootStyle.getPropertyValue('--chart-text-light').trim(),
+          padding: { bottom: 20 }
+        },
+        legend: {
+          position: 'bottom',
+          labels: {
+            generateLabels(chart) {
+              const all = chart.data.datasets;
+              const groups = [...new Set(all.map(ds => ds.label.split('-').slice(0, 2).join('-')))];
+              return groups.map(g => ({
+                text: g, strokeStyle: '#333',
+                hidden: all.filter(ds => ds.label.startsWith(g))
+                  .every(ds => !chart.isDatasetVisible(all.indexOf(ds))),
+                group: g
+              }));
+            }
+          },
+          onClick(e, item, legend) {
+            const chart = legend.chart;
+            const group = item.group;
+            const all = chart.data.datasets;
+            const hide = !item.hidden;
+            all.forEach((ds, i) => {
+              if (ds.label.startsWith(group)) chart.setDatasetVisibility(i, !hide);
+            });
+            chart.update();
+          },
+          color: rootStyle.getPropertyValue('--chart-text-light').trim(),
+          boxWidth: 15,
+          font: { family: 'Helvetica', size: 10, weight: '100' }
+        },
+        zoom: {
+          zoom: { wheel: { enabled: false }, pinch: { enabled: true }, mode: 'xy' },
+          pan: { enabled: true, mode: 'xy' },
+          limits: { x: { min: 'original', max: 'original' }, y: { min: 'original', max: 'original' } }
+        },
+        annotation: { annotations }
+      },
+      scales: {
+        x: {
+          type: 'linear',
+          title: { display: true, text: 'Flow Rate (L/min)', color: rootStyle.getPropertyValue('--chart-axis-text').trim() },
+          grid: { color: 'rgba(225,225,225,0.15)' },
+          ticks: { color: rootStyle.getPropertyValue('--chart-text-light').trim(), stepSize: 50 }
+        },
+        y: {
+          title: { display: true, text: 'Pressure Drop (bar)', color: rootStyle.getPropertyValue('--chart-axis-text').trim() },
+          grid: { color: 'rgba(225,225,225,0.15)' },
+          ticks: { color: rootStyle.getPropertyValue('--chart-text-light').trim(), stepSize: 0.1 }
+        }
+      }
+    }
+  });
+  const limitInputs = ['minX', 'maxX', 'minY', 'maxY'];
+  limitInputs.forEach(id => {
+    const input = document.getElementById(id);
+    if (input) {
+      input.addEventListener('input', () => {
+        if (!chartInstance) return;
+        const xScale = chartInstance.scales.x;
+        const yScale = chartInstance.scales.y;
+        const xMin = parseFloat(document.getElementById('minX').value);
+        const xMax = parseFloat(document.getElementById('maxX').value);
+        const yMin = parseFloat(document.getElementById('minY').value);
+        const yMax = parseFloat(document.getElementById('maxY').value);
+        if (!isNaN(xMin)) xScale.options.min = xMin; else delete xScale.options.min;
+        if (!isNaN(xMax)) xScale.options.max = xMax; else delete xScale.options.max;
+        if (!isNaN(yMin)) yScale.options.min = yMin; else delete yScale.options.min;
+        if (!isNaN(yMax)) yScale.options.max = yMax; else delete yScale.options.max;
+        chartInstance.update();
+      });
+    }
+  });
+  if (!document.getElementById('resetZoomBtn')) {
+    const btn = document.createElement('button');
+    btn.textContent = 'Reset Zoom';
+    btn.id = 'resetZoomBtn';
+    btn.style.marginTop = '10px';
+    btn.onclick = () => {
+      if (!chartInstance) return;
+      const xScale = chartInstance.scales.x;
+      const yScale = chartInstance.scales.y;
+      delete xScale.options.min;
+      delete xScale.options.max;
+      delete yScale.options.min;
+      delete yScale.options.max;
+      chartInstance.resetZoom();
+      chartInstance.update();
+      ['minX','maxX','minY','maxY'].forEach(id => document.getElementById(id).value = '');
+    };
+    document.getElementById('chartContainer').appendChild(btn);
+  }
+}
+
+// Plot Button Handler
+document.getElementById('plotBtn').addEventListener('click', () => {
+  if (!loadedData) return alert("Please load a JSON file first.");
+  const name = document.getElementById("fluidSelect").value;
+  const tempValue = parseFloat(document.getElementById("temperature").value);
+  const tempUnit = document.getElementById("tempUnit").value;
+  if (!name || isNaN(tempValue)) return alert("Select oil and enter temperature.");
+  const tK = convertUnit(tempUnit, "K", tempValue);
+  const viscosity = OilProps.getKinViscAtTemp(name, tK);
+  const flowRateValue = parseFloat(document.getElementById("flowRateInput").value);
+  const flowRateUnit = document.getElementById("flowUnit").value;
+  if (isNaN(flowRateValue)) return alert("Enter a valid flow rate.");
+  const flowLPM = convertUnit(flowRateUnit, "L/min", flowRateValue);
+  const dPValue = parseFloat(document.getElementById("pressure").value);
+  const dPUnit = document.getElementById("pressureUnit").value;
+  const dPBar = convertUnit(dPUnit, "bar", dPValue);
+  currentFlowRate = flowLPM;
+  currentMaxDp = isNaN(dPBar) ? null : dPBar;
+  document.getElementById("tempDisplay").textContent = `Temperature: ${safe(tK, 2)} C`;
+  document.getElementById("viscosityDisplay").textContent = `Viscosity: ${safe(viscosity, 2)} mm^2/s`;
+  document.getElementById("flowRateDisplay").textContent = `Flow Rate: ${safe(flowLPM, 2)} L/min`;
+  
+  const filters = [
+    { fn: filterByFlowRate, args: [flowLPM] },
+    { fn: filterBydP, args: [viscosity, flowLPM, dPBar] }
+  ];
+  let flowFilteredData = filterByFlowRate(loadedData.Series || loadedData, flowLPM);
+  document.getElementById("filterFlowResults").textContent = 
+    "Flow Filtered Filters: " + (Object.keys(flowFilteredData).length > 0 ?
+      Object.entries(flowFilteredData).map(([series, info]) => 
+        `${series}: ${Object.keys(info.filters || {}).join(", ")}`).join("; ") : "None");
+  let dPfilteredData = filterBydP(loadedData.Series || loadedData, viscosity, flowLPM, dPBar);
+  document.getElementById("filterdPResults").textContent = 
+    "dP Filtered Filters: " + (Object.keys(dPfilteredData).length > 0 ?
+      Object.entries(dPfilteredData).map(([series, info]) => 
+        `${series}: ${Object.keys(info.filters || {}).join(", ")}`).join("; ") : "None");
+  let combinedFilteredData = applyFilters(loadedData.Series || loadedData, filters);
+  document.getElementById("filterResults").textContent = 
+    "Combined Filters: " + (Object.keys(combinedFilteredData).length > 0 ?
+      Object.entries(combinedFilteredData).map(([series, info]) => 
+        `${series}: ${Object.keys(info.filters || {}).join(", ")}`).join("; ") : "None");
+  plotFilters(filterResults(combinedFilteredData, viscosity, flowLPM, dPBar), viscosity);
+});
+</script>
+
+<script>
+// Table Generation
+function generateTable(dataRoot) {
+  const container = document.getElementById('tableContainer');
+  container.innerHTML = "";
+  const table = document.createElement('table');
+  const thead = document.createElement('thead');
+  const headerRow = document.createElement('tr');
+  const columns = ["Series", "Filter", "Max Flow Rate", "Element", "Area [cm^2]", "Link", "AX2", "BX", "Pressure", "Viscosity", "Flow"];
+  columns.forEach(col => {
+    const th = document.createElement('th');
+    th.textContent = col;
+    headerRow.appendChild(th);
+  });
+  thead.appendChild(headerRow);
+  table.appendChild(thead);
+  const tbody = document.createElement('tbody');
+  const seriesDict = dataRoot.Series || {};
+  for (const [seriesName, seriesInfo] of Object.entries(seriesDict)) {
+    const filters = seriesInfo.filters || {};
+    const seriesTotalRows = Object.values(filters).reduce((sum, f) =>
+      sum + Object.values(f.element || {}).reduce((esum, e) => esum + (e.data?.length || 1), 0), 0);
+    let seriesPrinted = false;
+    for (const [filterName, filterInfo] of Object.entries(filters)) {
+      const maxFlow = filterInfo.maximum_flow_rate || "";
+      const elements = filterInfo.element || {};
+      const filterTotalRows = Object.values(elements).reduce((sum, e) => sum + (e.data?.length || 1), 0);
+      let filterPrinted = false;
+      for (const [elemName, elemInfo] of Object.entries(elements)) {
+        const area = elemInfo["area [cm^2]"] || "";
+        const link = elemInfo.link || "";
+        const ax2 = elemInfo.AX2 || "";
+        const bx = elemInfo.BX || "";
+        const measurements = elemInfo.data || [{ pressure: "", viscosity: "", flow: "" }];
+        const elemRowspan = measurements.length;
+        measurements.forEach((m, idx) => {
+          const tr = document.createElement('tr');
+          if (!seriesPrinted) {
+            const td = document.createElement('td');
+            if (seriesTotalRows > 1) td.rowSpan = seriesTotalRows;
+            td.className = "mono";
+            td.textContent = seriesName;
+            tr.appendChild(td);
+            seriesPrinted = true;
+          }
+          if (!filterPrinted) {
+            const tdFilter = document.createElement('td');
+            if (filterTotalRows > 1) tdFilter.rowSpan = filterTotalRows;
+            tdFilter.className = "mono";
+            tdFilter.textContent = filterName;
+            tr.appendChild(tdFilter);
+            const tdMax = document.createElement('td');
+            if (filterTotalRows > 1) tdMax.rowSpan = filterTotalRows;
+            tdMax.className = "nowrap center";
+            tdMax.textContent = maxFlow;
+            tr.appendChild(tdMax);
+            filterPrinted = true;
+          }
+          if (idx === 0) {
+            const tdElem = document.createElement('td');
+            if (elemRowspan > 1) tdElem.rowSpan = elemRowspan;
+            tdElem.className = "mono";
+            tdElem.textContent = elemName;
+            tr.appendChild(tdElem);
+            const tdArea = document.createElement('td');
+            if (elemRowspan > 1) tdArea.rowSpan = elemRowspan;
+            tdArea.className = "center";
+            tdArea.textContent = area;
+            tr.appendChild(tdArea);
+            const tdLink = document.createElement('td');
+            if (elemRowspan > 1) tdLink.rowSpan = elemRowspan;
+            if (link) tdLink.innerHTML = `<a class="link" href="${link}" target="_blank">${link}</a>`;
+            tr.appendChild(tdLink);
+            const tdAx2 = document.createElement('td');
+            if (elemRowspan > 1) tdAx2.rowSpan = elemRowspan;
+            tdAx2.className = "center";
+            tdAx2.textContent = ax2;
+            tr.appendChild(tdAx2);
+            const tdBx = document.createElement('td');
+            if (elemRowspan > 1) tdBx.rowSpan = elemRowspan;
+            tdBx.className = "center";
+            tdBx.textContent = bx;
+            tr.appendChild(tdBx);
+          }
+          const tdP = document.createElement('td'); tdP.className = "center"; tdP.textContent = m.pressure || ""; tr.appendChild(tdP);
+          const tdV = document.createElement('td'); tdV.className = "center"; tdV.textContent = m.viscosity || ""; tr.appendChild(tdV);
+          const tdF = document.createElement('td'); tdF.className = "center"; tdF.textContent = m.flow || ""; tr.appendChild(tdF);
+          tbody.appendChild(tr);
+        });
+      }
+    }
+  }
+  table.appendChild(tbody);
+  container.appendChild(table);
+}
+
+const toggleBtn = document.getElementById('toggleTableBtn');
+const tableContainer = document.getElementById('tableContainer');
+toggleBtn.addEventListener('click', () => {
+  const isHidden = tableContainer.classList.contains('hidden');
+  if (isHidden) {
+    tableContainer.classList.remove('hidden');
+    tableContainer.classList.add('show');
+    toggleBtn.textContent = "Hide Table";
+  } else {
+    tableContainer.classList.remove('show');
+    tableContainer.classList.add('hidden');
+    toggleBtn.textContent = "Show Table";
+  }
+});
+</script>
+  <script>
+  // Wait for the page to fully load
+  window.addEventListener("load", () => {
+    const loader = document.getElementById("loading-screen");
+    loader.classList.add("fade-out");
+    setTimeout(() => loader.style.display = "none", 1000); // remove after fade
+  });
+</script>
+</body>
+</html>

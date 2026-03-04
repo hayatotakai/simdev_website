@@ -3,5 +3,898 @@ import Layout from '../../layouts/BaseLayout.astro';
 const BASE_PATH = import.meta.env.BASE_URL.replace(/\/$/, '');
 ---
 
-
 <Layout>
+<style>
+  /* ── Layout ─────────────────────────────────────────── */
+  .fs-page {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 32px 20px 60px;
+    font-family: inherit;
+    color: #1f2328;
+  }
+
+  .fs-page h1 {
+    font-size: 1.75rem;
+    margin-bottom: 6px;
+    color: #1f2328;
+  }
+
+  .fs-subtitle {
+    font-size: 14px;
+    color: #656d76;
+    margin-bottom: 28px;
+    line-height: 1.6;
+  }
+
+  /* ── Cards ───────────────────────────────────────────── */
+  .fs-card {
+    background: #f6f8fa;
+    border: 1px solid #d0d7de;
+    border-radius: 8px;
+    padding: 20px 24px;
+    margin-bottom: 20px;
+  }
+
+  .fs-card-title {
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #1f2328;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #0969da;
+    margin: 0 0 18px;
+  }
+
+  /* ── Input grid ──────────────────────────────────────── */
+  .fs-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 14px 20px;
+    align-items: end;
+  }
+
+  .fs-field {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .fs-field label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #1f2328;
+  }
+
+  .fs-input-row {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+
+  .fs-input-row input {
+    flex: 1;
+    min-width: 0;
+  }
+
+  input[type='number'],
+  input[type='text'],
+  select {
+    padding: 7px 10px;
+    border: 1px solid #d0d7de;
+    border-radius: 6px;
+    font-size: 13px;
+    font-family: inherit;
+    background: #fff;
+    transition: border-color 0.2s;
+    box-sizing: border-box;
+  }
+
+  input[type='number']:focus,
+  input[type='text']:focus,
+  select:focus {
+    outline: none;
+    border-color: #0969da;
+    box-shadow: 0 0 0 3px rgba(9, 105, 218, 0.12);
+  }
+
+  .fs-hint {
+    font-size: 11px;
+    color: #656d76;
+    margin-top: 2px;
+  }
+
+  /* ── Micron checkboxes ───────────────────────────────── */
+  .micron-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 4px;
+  }
+
+  .micron-chip {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    border: 1px solid #d0d7de;
+    border-radius: 20px;
+    background: #fff;
+    font-size: 12px;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+  }
+
+  .micron-chip input[type='checkbox'] {
+    accent-color: #0969da;
+    cursor: pointer;
+  }
+
+  .micron-chip:has(input:checked) {
+    background: #dbeafe;
+    border-color: #0969da;
+  }
+
+  /* ── Action row ──────────────────────────────────────── */
+  .fs-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-top: 4px;
+  }
+
+  .btn-primary {
+    padding: 8px 22px;
+    background: #0969da;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  .btn-primary:hover { background: #0860ca; }
+
+  .btn-secondary {
+    padding: 8px 16px;
+    background: #e5e7eb;
+    color: #374151;
+    border: none;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  .btn-secondary:hover { background: #d1d5db; }
+
+  /* ── Status / feedback ───────────────────────────────── */
+  #fsStatus {
+    font-size: 13px;
+    color: #656d76;
+    font-style: italic;
+  }
+
+  .fs-error {
+    color: #d1242f;
+    background: #ffebe6;
+    border: 1px solid #f9bbb8;
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 13px;
+    margin-top: 8px;
+    display: none;
+  }
+
+  .fs-error.active { display: block; }
+
+  /* ── Results summary ─────────────────────────────────── */
+  .results-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+
+  .summary-stat {
+    background: #fff;
+    border: 1px solid #d0d7de;
+    border-radius: 6px;
+    padding: 10px 14px;
+  }
+
+  .summary-stat .stat-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #656d76;
+    font-weight: 600;
+  }
+
+  .summary-stat .stat-value {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #1f2328;
+    margin-top: 3px;
+  }
+
+  /* ── Recommended table ───────────────────────────────── */
+  .fs-table-wrap {
+    overflow-x: auto;
+    margin-top: 8px;
+  }
+
+  .fs-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+
+  .fs-table th {
+    background: #0969da;
+    color: #fff;
+    padding: 8px 12px;
+    text-align: left;
+    font-weight: 600;
+    white-space: nowrap;
+    position: sticky;
+    top: 0;
+  }
+
+  .fs-table td {
+    padding: 7px 12px;
+    border-bottom: 1px solid #e5e7eb;
+    vertical-align: middle;
+    white-space: nowrap;
+  }
+
+  .fs-table tr:nth-child(even) td { background: #f6f8fa; }
+  .fs-table tr:hover td { background: #dbeafe; }
+
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+
+  .badge-green  { background: #dafbe1; color: #1a7f37; }
+  .badge-yellow { background: #fff8c5; color: #7d4e00; }
+  .badge-red    { background: #ffebe6; color: #cf222e; }
+
+  /* ── Chart ───────────────────────────────────────────── */
+  .chart-wrap {
+    position: relative;
+    margin-top: 8px;
+  }
+
+  .chart-axis-controls {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+    align-items: center;
+  }
+
+  .chart-axis-controls label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #656d76;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .chart-axis-controls input {
+    width: 72px;
+    padding: 4px 8px;
+    font-size: 12px;
+  }
+
+  canvas#fsChart {
+    width: 100% !important;
+    max-height: 420px;
+  }
+</style>
+
+<main class="fs-page">
+  <h1>Filter Selection Tool</h1>
+  <p class="fs-subtitle">
+    Enter your operating conditions to find compatible filters and visualise pressure-drop curves.
+  </p>
+
+  <!-- ── Inputs ──────────────────────────────────────────── -->
+  <div class="fs-card">
+    <h2 class="fs-card-title">Operating Conditions</h2>
+    <div class="fs-grid">
+
+      <div class="fs-field">
+        <label for="fsFluid">Oil Type</label>
+        <select id="fsFluid">
+          <option value="">-- Select --</option>
+        </select>
+      </div>
+
+      <div class="fs-field">
+        <label for="fsTemp">Temperature</label>
+        <div class="fs-input-row">
+          <input type="number" id="fsTemp" placeholder="e.g. 40" step="any" />
+          <select id="fsTempUnit" data-unit-type="temperature" style="width:70px"></select>
+        </div>
+      </div>
+
+      <div class="fs-field">
+        <label for="fsFlow">Flow Rate</label>
+        <div class="fs-input-row">
+          <input type="number" id="fsFlow" placeholder="e.g. 100" step="any" min="0" />
+          <select id="fsFlowUnit" data-unit-type="flow" style="width:80px"></select>
+        </div>
+      </div>
+
+      <div class="fs-field">
+        <label for="fsMaxdP">Max Pressure Drop <span style="font-weight:400;color:#656d76">(optional)</span></label>
+        <div class="fs-input-row">
+          <input type="number" id="fsMaxdP" placeholder="e.g. 2" step="any" min="0" />
+          <select id="fsMaxdPUnit" data-unit-type="pressure" style="width:70px"></select>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Micron filter -->
+    <div class="fs-field" style="margin-top:16px;">
+      <label>Micron Rating Filter <span style="font-weight:400;color:#656d76">(select all that apply; leave all unchecked for any)</span></label>
+      <div class="micron-list" id="micronList">
+        <!-- populated by JS -->
+      </div>
+    </div>
+
+    <div class="fs-error" id="fsError"></div>
+
+    <div class="fs-actions" style="margin-top:18px;">
+      <button class="btn-primary" id="fsPlotBtn">Find Filters &amp; Plot</button>
+      <button class="btn-secondary" id="fsClearBtn">Clear</button>
+      <span id="fsStatus"></span>
+    </div>
+  </div>
+
+  <!-- ── Results ─────────────────────────────────────────── -->
+  <div class="fs-card" id="fsResultsCard" style="display:none;">
+    <h2 class="fs-card-title">Results</h2>
+
+    <div class="results-summary">
+      <div class="summary-stat">
+        <div class="stat-label">Flow Rate</div>
+        <div class="stat-value" id="rFlowRate">—</div>
+      </div>
+      <div class="summary-stat">
+        <div class="stat-label">Viscosity</div>
+        <div class="stat-value" id="rViscosity">—</div>
+      </div>
+      <div class="summary-stat">
+        <div class="stat-label">Temperature</div>
+        <div class="stat-value" id="rTemp">—</div>
+      </div>
+      <div class="summary-stat">
+        <div class="stat-label">Filters Found</div>
+        <div class="stat-value" id="rCount">—</div>
+      </div>
+    </div>
+
+    <div class="fs-table-wrap">
+      <table class="fs-table" id="fsTable">
+        <thead>
+          <tr>
+            <th>Series</th>
+            <th>Filter</th>
+            <th>Element</th>
+            <th>Micron</th>
+            <th>Media</th>
+            <th>Max Flow (L/min)</th>
+            <th>Area (cm²)</th>
+            <th>ΔP @ Flow (bar)</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="fsTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── Chart ───────────────────────────────────────────── -->
+  <div class="fs-card" id="fsChartCard" style="display:none;">
+    <h2 class="fs-card-title">Pressure Drop vs Flow Rate</h2>
+
+    <div class="chart-axis-controls">
+      <label>Min X: <input type="number" id="cMinX" placeholder="Auto" step="any" /></label>
+      <label>Max X: <input type="number" id="cMaxX" placeholder="Auto" step="any" /></label>
+      <label>Min Y: <input type="number" id="cMinY" placeholder="Auto" step="any" /></label>
+      <label>Max Y: <input type="number" id="cMaxY" placeholder="Auto" step="any" /></label>
+      <button class="btn-secondary" id="cResetBtn">Reset Zoom</button>
+    </div>
+
+    <div class="chart-wrap">
+      <canvas id="fsChart"></canvas>
+    </div>
+  </div>
+</main>
+
+</Layout>
+
+<!-- External deps -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mathjs@13.0.3/lib/browser/math.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
+<script src={`${BASE_PATH}/scripts/unit_converter.js`}></script>
+<script src={`${BASE_PATH}/scripts/oil_properties/getOilProperties.js`}></script>
+
+<script is:inline>
+(() => {
+  /* ── Constants ─────────────────────────────────────────── */
+  const FILTER_DATA_URL = '/components/Filter_data.json';
+  const SERIES_COLORS = [
+    '#2563eb','#dc2626','#16a34a','#d97706','#7c3aed',
+    '#0891b2','#be185d','#65a30d','#ea580c','#6d28d9'
+  ];
+
+  /* ── State ─────────────────────────────────────────────── */
+  let loadedData  = null;   // raw Series dict
+  let chartInst   = null;
+  let currentFlow = null;
+  let currentMaxdP = null;
+
+  /* ── Helpers ───────────────────────────────────────────── */
+  function showError(msg) {
+    const el = document.getElementById('fsError');
+    el.textContent = msg;
+    el.classList.add('active');
+  }
+
+  function clearError() {
+    const el = document.getElementById('fsError');
+    el.textContent = '';
+    el.classList.remove('active');
+  }
+
+  function setStatus(msg) {
+    document.getElementById('fsStatus').textContent = msg;
+  }
+
+  /** Extract micron number from element name, e.g. "UMC-0010-..." → 10 */
+  function parseMicron(elemName) {
+    const m = elemName.match(/[-\s](\d{4})[-\s]/);
+    return m ? parseInt(m[1], 10) : null;
+  }
+
+  /** Extract media type from element name prefix: UMC → "Microglass", ULP → "ULP" */
+  function parseMedia(elemName) {
+    const prefix = elemName.split(/[-\s]/)[0].toUpperCase();
+    if (prefix === 'UMC') return 'Microglass';
+    if (prefix === 'ULP') return 'ULP';
+    if (prefix === 'USF') return 'USF';
+    return prefix;
+  }
+
+  /** Collect all distinct micron values from loaded data */
+  function getAllMicrons(seriesDict) {
+    const set = new Set();
+    for (const s of Object.values(seriesDict)) {
+      for (const f of Object.values(s.filters || {})) {
+        for (const e of Object.keys(f.element || {})) {
+          const m = parseMicron(e);
+          if (m !== null) set.add(m);
+        }
+      }
+    }
+    return [...set].sort((a, b) => a - b);
+  }
+
+  /** Fit flow model: ln(Q) = a·ln(P) - b·ln(v) + ln(k) */
+  function fitFlowModel(data) {
+    const X = data.map(d => [Math.log(d.pressure), -Math.log(d.viscosity), 1]);
+    const y = data.map(d => Math.log(d.flow));
+    const XT = math.transpose(X);
+    const coeff = math.lusolve(math.multiply(XT, X), math.multiply(XT, y)).flat();
+    return { a: coeff[0], b: coeff[1], k: Math.exp(coeff[2]) };
+  }
+
+  /** Calculate total pressure drop at flow Q, viscosity v */
+  function calcDP(Q, v, AX2, BX, model) {
+    if (Q <= 0) return 0;
+    const p  = Math.pow((Q * Math.pow(v, model.b)) / model.k, 1 / model.a);
+    const SK = p / Q;
+    return (AX2 / 1000) * Q * Q + (BX / 100) * Q + SK * Q;
+  }
+
+  /* ── Populate unit dropdowns ────────────────────────────── */
+  function initUnits() {
+    document.querySelectorAll('[data-unit-type]').forEach(sel => {
+      const type = sel.dataset.unitType;
+      if (!window.getAvailableUnits) return;
+      getAvailableUnits(type).forEach(u => {
+        const opt = document.createElement('option');
+        opt.value = u;
+        opt.textContent = window.getUnitDisplayName ? getUnitDisplayName(u) : u;
+        sel.appendChild(opt);
+      });
+      if (type === 'temperature') sel.value = 'C';
+      if (type === 'flow')        sel.value = 'L/min';
+      if (type === 'pressure')    sel.value = 'bar';
+    });
+  }
+
+  /* ── Populate oil dropdown ──────────────────────────────── */
+  async function initOils() {
+    if (!window.OilProps) return;
+    try {
+      await OilProps.loadFluidData();
+      const sel = document.getElementById('fsFluid');
+      OilProps.getFluidNames().forEach(name => {
+        const opt = document.createElement('option');
+        opt.value = name;
+        opt.textContent = name;
+        sel.appendChild(opt);
+      });
+    } catch (e) { console.warn('Oil load failed', e); }
+  }
+
+  /* ── Load filter JSON ───────────────────────────────────── */
+  async function loadFilterData() {
+    try {
+      const res  = await fetch(FILTER_DATA_URL);
+      const obj  = await res.json();
+      loadedData = (obj.data || obj).Series || (obj.data || obj);
+      buildMicronChips();
+      setStatus('Filter data loaded.');
+    } catch (e) {
+      setStatus('Failed to load filter data.');
+      console.error(e);
+    }
+  }
+
+  /* ── Build micron chip list ─────────────────────────────── */
+  function buildMicronChips() {
+    const container = document.getElementById('micronList');
+    container.innerHTML = '';
+    getAllMicrons(loadedData).forEach(m => {
+      const lbl = document.createElement('label');
+      lbl.className = 'micron-chip';
+      lbl.innerHTML = `<input type="checkbox" value="${m}" /> ${m} µm`;
+      container.appendChild(lbl);
+    });
+  }
+
+  /* ── Core filter functions ──────────────────────────────── */
+  /** Keep only the smallest filter per series that can handle flowLPM */
+  function filterByFlow(seriesDict, flowLPM) {
+    const out = {};
+    for (const [sName, sInfo] of Object.entries(seriesDict)) {
+      const valid = Object.entries(sInfo.filters || {})
+        .filter(([, fi]) => (parseFloat(fi.maximum_flow_rate) || Infinity) > flowLPM)
+        .sort((a, b) => (a[1].maximum_flow_rate || 0) - (b[1].maximum_flow_rate || 0));
+      if (valid.length) out[sName] = { filters: { [valid[0][0]]: valid[0][1] } };
+    }
+    return out;
+  }
+
+  /** Remove elements whose dP at flowLPM exceeds maxdPBar */
+  function filterByDP(seriesDict, viscosity, flowLPM, maxdPBar) {
+    if (isNaN(maxdPBar)) return seriesDict;
+    const out = {};
+    for (const [sName, sInfo] of Object.entries(seriesDict)) {
+      const filteredFilters = {};
+      for (const [fName, fInfo] of Object.entries(sInfo.filters || {})) {
+        const goodElems = {};
+        for (const [eName, eInfo] of Object.entries(fInfo.element || {})) {
+          const data = eInfo.data || [];
+          if (data.length < 3) continue;
+          const dp = calcDP(flowLPM, viscosity, parseFloat(eInfo.AX2 || 0), parseFloat(eInfo.BX || 0), fitFlowModel(data));
+          if (dp <= maxdPBar) goodElems[eName] = eInfo;
+        }
+        if (Object.keys(goodElems).length)
+          filteredFilters[fName] = { ...fInfo, element: goodElems };
+      }
+      if (Object.keys(filteredFilters).length)
+        out[sName] = { filters: filteredFilters };
+    }
+    return out;
+  }
+
+  /** Remove elements whose micron rating isn't in the selected set */
+  function filterByMicron(seriesDict, selectedMicrons) {
+    if (!selectedMicrons.length) return seriesDict;
+    const out = {};
+    for (const [sName, sInfo] of Object.entries(seriesDict)) {
+      const filteredFilters = {};
+      for (const [fName, fInfo] of Object.entries(sInfo.filters || {})) {
+        const goodElems = {};
+        for (const [eName, eInfo] of Object.entries(fInfo.element || {})) {
+          if (selectedMicrons.includes(parseMicron(eName))) goodElems[eName] = eInfo;
+        }
+        if (Object.keys(goodElems).length)
+          filteredFilters[fName] = { ...fInfo, element: goodElems };
+      }
+      if (Object.keys(filteredFilters).length)
+        out[sName] = { filters: filteredFilters };
+    }
+    return out;
+  }
+
+  /* ── Build results table ────────────────────────────────── */
+  function buildTable(seriesDict, viscosity, flowLPM, maxdPBar) {
+    const tbody = document.getElementById('fsTableBody');
+    tbody.innerHTML = '';
+    let rowCount = 0;
+
+    for (const [sName, sInfo] of Object.entries(seriesDict)) {
+      for (const [fName, fInfo] of Object.entries(sInfo.filters || {})) {
+        for (const [eName, eInfo] of Object.entries(fInfo.element || {})) {
+          const data = eInfo.data || [];
+          if (data.length < 3) continue;
+          const dp = calcDP(flowLPM, viscosity,
+            parseFloat(eInfo.AX2 || 0), parseFloat(eInfo.BX || 0), fitFlowModel(data));
+          const micron = parseMicron(eName);
+          const media  = parseMedia(eName);
+          const area   = eInfo['area [cm^2]'] || '—';
+          const maxQ   = fInfo.maximum_flow_rate || '—';
+
+          let badgeClass = 'badge-green';
+          let badgeText  = 'OK';
+          if (!isNaN(maxdPBar)) {
+            if (dp > maxdPBar * 0.9 && dp <= maxdPBar) { badgeClass = 'badge-yellow'; badgeText = 'Near limit'; }
+            else if (dp > maxdPBar)                     { badgeClass = 'badge-red';    badgeText = 'Over limit'; }
+          }
+
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${sName.trim()}</td>
+            <td>${fName}</td>
+            <td style="font-family:monospace;font-size:12px">${eName}</td>
+            <td>${micron !== null ? micron + ' µm' : '—'}</td>
+            <td>${media}</td>
+            <td>${maxQ}</td>
+            <td>${area}</td>
+            <td>${dp.toFixed(3)}</td>
+            <td><span class="badge ${badgeClass}">${badgeText}</span></td>
+          `;
+          tbody.appendChild(tr);
+          rowCount++;
+        }
+      }
+    }
+    return rowCount;
+  }
+
+  /* ── Draw chart ─────────────────────────────────────────── */
+  function drawChart(seriesDict, viscosity, flowLPM, maxdPBar) {
+    const datasets = [];
+    let colorIdx = 0;
+    const seriesColorMap = {};
+
+    for (const [sName, sInfo] of Object.entries(seriesDict)) {
+      if (!seriesColorMap[sName]) {
+        seriesColorMap[sName] = SERIES_COLORS[colorIdx++ % SERIES_COLORS.length];
+      }
+      const base    = seriesColorMap[sName];
+      const filters = sInfo.filters || {};
+      const allElems = Object.values(filters).flatMap(f => Object.keys(f.element || {}));
+      let eIdx = 0;
+
+      for (const [fName, fInfo] of Object.entries(filters)) {
+        const maxQ = parseFloat(fInfo.maximum_flow_rate) || 200;
+        for (const [eName, eInfo] of Object.entries(fInfo.element || {})) {
+          const data = eInfo.data || [];
+          if (data.length < 3) { eIdx++; continue; }
+          const model = fitFlowModel(data);
+          const AX2   = parseFloat(eInfo.AX2 || 0);
+          const BX    = parseFloat(eInfo.BX || 0);
+
+          // Vary lightness across elements of same series
+          const total = allElems.length;
+          const lightFrac = 0.3 + (eIdx / (total || 1)) * 0.4;
+          // Derive a shade by adjusting alpha via hex opacity
+          const opacity = Math.round(lightFrac * 255).toString(16).padStart(2, '0');
+          const color   = base; // use base color directly; differentiate via opacity later
+
+          const pts = [];
+          const steps = 60;
+          for (let i = 1; i <= steps; i++) {
+            const Q  = (maxQ / steps) * i;
+            const dp = calcDP(Q, viscosity, AX2, BX, model);
+            if (isFinite(dp) && dp >= 0) pts.push({ x: Q, y: parseFloat(dp.toFixed(4)) });
+          }
+
+          datasets.push({
+            label:       `${sName.trim()} / ${fName} / ${eName}`,
+            data:        pts,
+            borderColor: color,
+            borderWidth: total > 1 ? 1.5 : 2,
+            pointRadius: 0,
+            fill:        false,
+            tension:     0.3,
+          });
+          eIdx++;
+        }
+      }
+    }
+
+    const ctx = document.getElementById('fsChart').getContext('2d');
+    if (chartInst) chartInst.destroy();
+
+    const annotations = {};
+    if (!isNaN(flowLPM)) {
+      annotations.flowLine = {
+        type: 'line', xMin: flowLPM, xMax: flowLPM,
+        borderColor: '#6b7280', borderWidth: 2, borderDash: [5, 5],
+        label: { content: `Q = ${flowLPM.toFixed(1)} L/min`, display: true, position: 'start', backgroundColor: 'rgba(107,114,128,0.8)', color: '#fff', font: { size: 11 } }
+      };
+    }
+    if (!isNaN(maxdPBar)) {
+      annotations.dpLine = {
+        type: 'line', yMin: maxdPBar, yMax: maxdPBar,
+        borderColor: '#dc2626', borderWidth: 2, borderDash: [4, 4],
+        label: { content: `Max ΔP = ${maxdPBar.toFixed(2)} bar`, display: true, position: 'end', backgroundColor: 'rgba(220,38,38,0.8)', color: '#fff', font: { size: 11 } }
+      };
+    }
+
+    chartInst = new Chart(ctx, {
+      type: 'line',
+      data: { datasets },
+      options: {
+        responsive: true,
+        parsing: false,
+        plugins: {
+          annotation: { annotations },
+          legend: {
+            position: 'bottom',
+            labels: { font: { size: 11 }, boxWidth: 14, padding: 10 }
+          },
+          tooltip: {
+            callbacks: {
+              label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y.toFixed(3)} bar`
+            }
+          }
+        },
+        scales: {
+          x: {
+            type: 'linear',
+            title: { display: true, text: 'Flow Rate (L/min)', font: { size: 13 } },
+            grid: { color: 'rgba(0,0,0,0.07)' }
+          },
+          y: {
+            title: { display: true, text: 'Pressure Drop (bar)', font: { size: 13 } },
+            grid: { color: 'rgba(0,0,0,0.07)' }
+          }
+        }
+      }
+    });
+
+    // Axis range inputs
+    ['cMinX','cMaxX','cMinY','cMaxY'].forEach(id => {
+      const inp = document.getElementById(id);
+      // remove old listeners by replacing the node
+      const fresh = inp.cloneNode(true);
+      inp.replaceWith(fresh);
+      fresh.addEventListener('input', () => {
+        if (!chartInst) return;
+        const xs = chartInst.scales.x, ys = chartInst.scales.y;
+        const v = (i) => { const n = parseFloat(document.getElementById(i).value); return isNaN(n) ? undefined : n; };
+        xs.options.min = v('cMinX'); xs.options.max = v('cMaxX');
+        ys.options.min = v('cMinY'); ys.options.max = v('cMaxY');
+        chartInst.update();
+      });
+    });
+  }
+
+  /* ── Main plot handler ──────────────────────────────────── */
+  document.getElementById('fsPlotBtn').addEventListener('click', () => {
+    clearError();
+    if (!loadedData) { showError('Filter data not loaded yet. Please wait and try again.'); return; }
+
+    const fluidName = document.getElementById('fsFluid').value;
+    const tempVal   = parseFloat(document.getElementById('fsTemp').value);
+    const tempUnit  = document.getElementById('fsTempUnit').value;
+    const flowVal   = parseFloat(document.getElementById('fsFlow').value);
+    const flowUnit  = document.getElementById('fsFlowUnit').value;
+    const dPVal     = parseFloat(document.getElementById('fsMaxdP').value);
+    const dPUnit    = document.getElementById('fsMaxdPUnit').value;
+
+    if (!fluidName)     { showError('Please select an oil type.'); return; }
+    if (isNaN(tempVal)) { showError('Please enter a temperature.'); return; }
+    if (isNaN(flowVal) || flowVal <= 0) { showError('Please enter a positive flow rate.'); return; }
+
+    const tempK    = convertUnit(tempUnit, 'K', tempVal);
+    const flowLPM  = convertUnit(flowUnit, 'L/min', flowVal);
+    const maxdPBar = isNaN(dPVal) ? NaN : convertUnit(dPUnit, 'bar', dPVal);
+    const viscosity = OilProps.getKinViscAtTemp(fluidName, tempK);
+
+    if (!isFinite(viscosity) || viscosity <= 0) {
+      showError('Could not compute viscosity for these conditions. Check oil type and temperature.');
+      return;
+    }
+
+    // Get selected microns
+    const selectedMicrons = Array.from(
+      document.querySelectorAll('#micronList input[type="checkbox"]:checked')
+    ).map(cb => parseInt(cb.value, 10));
+
+    // Apply filters
+    let result = filterByFlow(loadedData, flowLPM);
+    result     = filterByMicron(result, selectedMicrons);
+    result     = filterByDP(result, viscosity, flowLPM, maxdPBar);
+
+    // Update summary stats
+    document.getElementById('rFlowRate').textContent  = `${flowLPM.toFixed(1)} L/min`;
+    document.getElementById('rViscosity').textContent = `${viscosity.toFixed(2)} mm²/s`;
+    document.getElementById('rTemp').textContent      = `${(tempK - 273.15).toFixed(1)} °C`;
+
+    const rowCount = buildTable(result, viscosity, flowLPM, maxdPBar);
+    document.getElementById('rCount').textContent = rowCount;
+
+    currentFlow  = flowLPM;
+    currentMaxdP = isNaN(maxdPBar) ? null : maxdPBar;
+
+    // Show result + chart cards
+    document.getElementById('fsResultsCard').style.display = '';
+    document.getElementById('fsChartCard').style.display   = '';
+
+    if (rowCount > 0) {
+      drawChart(result, viscosity, flowLPM, maxdPBar);
+    } else {
+      if (chartInst) { chartInst.destroy(); chartInst = null; }
+      document.getElementById('fsChartCard').style.display = 'none';
+      setStatus('No filters matched the given criteria.');
+    }
+    setStatus(rowCount > 0 ? `${rowCount} result(s) found.` : '');
+  });
+
+  /* ── Reset zoom button ──────────────────────────────────── */
+  document.getElementById('cResetBtn').addEventListener('click', () => {
+    if (!chartInst) return;
+    const xs = chartInst.scales.x, ys = chartInst.scales.y;
+    delete xs.options.min; delete xs.options.max;
+    delete ys.options.min; delete ys.options.max;
+    chartInst.update();
+    ['cMinX','cMaxX','cMinY','cMaxY'].forEach(id => document.getElementById(id).value = '');
+  });
+
+  /* ── Clear button ───────────────────────────────────────── */
+  document.getElementById('fsClearBtn').addEventListener('click', () => {
+    ['fsFluid','fsTempUnit','fsFlowUnit','fsMaxdPUnit'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.selectedIndex = 0;
+    });
+    ['fsTemp','fsFlow','fsMaxdP'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.value = '';
+    });
+    document.querySelectorAll('#micronList input[type="checkbox"]').forEach(cb => cb.checked = false);
+    document.getElementById('fsResultsCard').style.display = 'none';
+    document.getElementById('fsChartCard').style.display   = 'none';
+    if (chartInst) { chartInst.destroy(); chartInst = null; }
+    clearError();
+    setStatus('');
+  });
+
+  /* ── Init ───────────────────────────────────────────────── */
+  function init() {
+    if (window.getAvailableUnits) initUnits();
+    if (window.OilProps) { initOils(); }
+    loadFilterData();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
+</script>
