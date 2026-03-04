@@ -787,6 +787,53 @@ const BASE_PATH = import.meta.env.BASE_URL.replace(/\/$/, '');
       submitBtn.textContent = 'Sending...';
 
       try {
+        // ── Build structured JSON ──────────────────────────────────
+        const submissionData = {
+          submission_date: new Date().toISOString(),
+          required_inputs: {
+            company_name:        companyName,
+            machine_name:        machineName,
+            email,
+            min_tank_volume:     { value: minVol,            unit: minUnit             },
+            max_tank_volume:     { value: maxVol,            unit: maxUnit             },
+            oil_type:            oilType,
+            nominal_temperature: { value: nominalTemp,       unit: nominalTempUnit     },
+            max_flow_rate:       { value: maxFlowRate,       unit: maxFlowRateUnit     },
+            tilt_angle:          { value: tiltAngle,         unit: tiltAngleUnit       },
+            material_thickness:  { value: materialThickness, unit: materialThicknessUnit },
+            tank_resizing_flexibility: { x: resizeX, y: resizeY, z: resizeZ }
+          },
+          additional_information: {
+            eau:                    Number.isFinite(isEAU)       ? isEAU                                        : null,
+            total_system_volume:    Number.isFinite(totalSysVol) ? { value: totalSysVol, unit: totalSysVolUnit } : null,
+            preferred_tank_material: tankMaterial      || null,
+            optimization_goals:     optGoals.length    ? optGoals : null,
+            oem_return_line_filter: oemReturnLineFilter || null,
+            oem_filter_element:     oemFilterElement    || null,
+            comments:               comments            || null,
+            attached_files: {
+              geometry_file:       geometryFile ? geometryFile.name : null,
+              port_flow_rate_file: portFlowFile ? portFlowFile.name : null,
+            }
+          }
+        };
+
+        // ── Generate & download zip ─────────────────────────────
+        const zip = new JSZip();
+        zip.file('project_submission.json', JSON.stringify(submissionData, null, 2));
+        if (geometryFile) zip.file('files/' + geometryFile.name, geometryFile);
+        if (portFlowFile) zip.file('files/' + portFlowFile.name, portFlowFile);
+
+        const zipBlob  = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 6 } });
+        const zipUrl   = URL.createObjectURL(zipBlob);
+        const anchor   = document.createElement('a');
+        const safeName = companyName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+        anchor.download = `project_${safeName}_${new Date().toISOString().slice(0, 10)}.zip`;
+        anchor.href     = zipUrl;
+        anchor.click();
+        setTimeout(() => URL.revokeObjectURL(zipUrl), 10000);
+
+        // ── Submit to Web3Forms ──────────────────────────────────
         const formData = new FormData();
         formData.append('access_key',             WEB3FORMS_ACCESS_KEY);
         formData.append('subject',                'New Project Submission');
@@ -825,13 +872,13 @@ const BASE_PATH = import.meta.env.BASE_URL.replace(/\/$/, '');
         const data = await res.json();
 
         if (data.success) {
-          showSuccess('Your project has been submitted! We will be in touch soon.');
+          showSuccess('Your project has been submitted and a ZIP file has been downloaded to your device.');
           form.reset();
         } else {
-          showError(data.message || 'Submission failed. Please try again.');
+          showError((data.message || 'Submission failed. Please try again.') + ' Your ZIP file was still downloaded.');
         }
       } catch (err) {
-        showError('Network error - please check your connection and try again.');
+        showError('An error occurred. Please check your connection and try again.');
         console.error(err);
       } finally {
         submitBtn.disabled    = false;
@@ -841,5 +888,6 @@ const BASE_PATH = import.meta.env.BASE_URL.replace(/\/$/, '');
   })();
 </script>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src={`${BASE_PATH}/scripts/unit_converter.js`}></script>
 <script src={`${BASE_PATH}/scripts/oil_properties/getOilProperties.js`}></script>

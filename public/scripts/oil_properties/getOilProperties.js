@@ -20,9 +20,10 @@ async function loadFluidData() {
   loadPromise = (async () => {
     try {
       if (typeof window !== "undefined" && typeof fetch !== "undefined") {
-        // Browser mode - determine path at fetch time to get window.BASE_URL
-        const base = (typeof window !== 'undefined' && window.BASE_URL) || '';
-        const FLUID_DATA_PATH = `${base}/components/fluid_data.json`;
+        // Browser mode - determine base path from current location
+        const pathParts = window.location.pathname.split('/');
+        const BASE_PATH = pathParts.includes('simdev_website') ? '/simdev_website' : '';
+        const FLUID_DATA_PATH = `${BASE_PATH}/components/fluid_data.json`;
         const response = await fetch(FLUID_DATA_PATH);
         if (!response.ok) {
           throw new Error(`Failed to load fluid data: ${response.statusText}`);

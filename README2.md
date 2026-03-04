@@ -37,7 +37,9 @@ All commands are run from the root of the project, from a terminal:
 | `npm run preview`         | Preview your build locally, before deploying     |
 | `npm run astro ...`       | Run CLI commands like `astro add`, `astro check` |
 | `npm run astro -- --help` | Get help using the Astro CLI                     |
-
+| `git add .`               | Get help using the Astro CLI                     |
+| `git commit -m "Adding filter selection"` | Get help using the Astro CLI                     |
+| `git push --set-upstream origin main --force-with-lease` | Get help using the Astro CLI                     |
 ## 👀 Want to learn more?
 
 Feel free to check [our documentation](https://docs.astro.build) or jump into our [Discord server](https://astro.build/chat).
